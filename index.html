@@ -3,58 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PoupeRota Pro - Revisado</title>
+    <title>PoupeRota Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { 
-            --primary: #00d1b2; --accent: #ff7f50; --bg: #f4f7f6; --card: #ffffff;
-            --text: #2d3748; --border: #e2e8f0;
-        }
-        [data-theme="dark"] {
-            --bg: #101820; --card: #1a232e; --text: #ffffff; --border: #2d3748;
-        }
-        * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { margin: 0; display: flex; height: 100vh; background: var(--bg); color: var(--text); overflow: hidden; }
-
-        #sidebar { 
-            width: 380px; background: var(--card); display: flex; flex-direction: column; 
-            z-index: 1000; border-right: 1px solid var(--border);
-        }
-
-        .header { padding: 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
-        .logo-box { display: flex; align-items: center; gap: 10px; }
+        :root { --primary: #00d1b2; --accent: #ff7f50; --bg: #f4f7f6; --card: #ffffff; --text: #2d3748; --border: #e2e8f0; }
+        [data-theme="dark"] { --bg: #101820; --card: #1a232e; --text: #ffffff; --border: #2d3748; }
         
+        body { margin: 0; display: flex; height: 100vh; background: var(--bg); color: var(--text); overflow: hidden; flex-direction: row; }
+        #sidebar { width: 380px; background: var(--card); display: flex; flex-direction: column; z-index: 1000; border-right: 1px solid var(--border); transition: 0.3s; }
+        .header { padding: 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
         #lista-entregas { flex-grow: 1; overflow-y: auto; padding: 15px; }
         
-        .entrega-card { 
-            background: var(--bg); border-radius: 12px; padding: 15px; margin-bottom: 12px; 
-            border: 2px solid transparent; cursor: pointer; transition: 0.2s;
-        }
-        .entrega-card.active { border-color: var(--primary); transform: scale(1.02); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .entrega-card.done { opacity: 0.4; filter: grayscale(1); }
+        .entrega-card { background: var(--bg); border-radius: 12px; padding: 15px; margin-bottom: 12px; border: 2px solid transparent; cursor: pointer; }
+        .entrega-card.active { border-color: var(--primary); transform: scale(1.02); }
+        .entrega-card.done { opacity: 0.3; filter: grayscale(1); }
 
-        .btn-theme { background: none; border: none; cursor: pointer; font-size: 1.2rem; }
-        #map { flex-grow: 1; height: 100vh; background: #000; }
-
-        /* DESTAQUE DO PIN */
-        .selected-marker {
-            filter: drop-shadow(0 0 10px var(--primary)) hue-rotate(150deg) !important;
-            z-index: 9999 !important;
-            animation: pulse 1s infinite alternate;
+        /* PIN PULSANTE CUSTOMIZADO */
+        .custom-pin { background-color: var(--primary); border: 2px solid white; border-radius: 50%; width: 12px; height: 12px; }
+        .pin-active { 
+            background-color: var(--accent) !important; 
+            width: 18px !important; height: 18px !important; 
+            box-shadow: 0 0 15px var(--accent);
+            animation: pulse 0.8s infinite alternate; 
+            z-index: 999 !important;
         }
-        @keyframes pulse {
-            from { transform: scale(1); }
-            to { transform: scale(1.4); }
-        }
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.5); } }
 
         @media (max-width: 768px) {
             body { flex-direction: column; }
-            #sidebar { width: 100%; height: 45vh; position: fixed; bottom: 0; border-radius: 20px 20px 0 0; }
-            #map { height: 55vh; }
+            #sidebar { width: 100%; height: 50vh; position: fixed; bottom: 0; border-radius: 20px 20px 0 0; }
+            #map { height: 50vh; width: 100%; }
         }
     </style>
 </head>
@@ -62,22 +44,22 @@
 
 <div id="sidebar">
     <div class="header">
-        <div class="logo-box">
-            <img src="logo.png" alt="" style="width:30px" onerror="this.style.display='none'">
-            <h1 style="font-size: 1.1rem; margin:0">PoupeRota <span style="color:var(--accent)">Pro</span></h1>
+        <div style="display:flex; align-items:center; gap:10px">
+            <img src="logo.png" style="width:30px" onerror="this.style.display='none'">
+            <h1 style="font-size: 1rem; margin:0">PoupeRota <span style="color:var(--accent)">Pro</span></h1>
         </div>
-        <button class="btn-theme" onclick="toggleTheme()">☀️</button>
+        <button onclick="toggleTheme()" style="background:none; border:none; cursor:pointer; font-size:1.2rem">☀️</button>
     </div>
 
-    <div id="upload-section" style="padding: 20px; text-align: center;">
+    <div id="upload-section" style="padding: 20px;">
         <input type="file" id="file-input" style="display:none" accept=".csv, .xlsx, .xls">
-        <button onclick="document.getElementById('file-input').click()" style="width:100%; padding: 15px; border: 2px dashed var(--primary); background:none; color:var(--primary); font-weight:bold; border-radius:10px; cursor:pointer">📂 CARREGAR PLANILHA</button>
+        <button onclick="document.getElementById('file-input').click()" style="width:100%; padding:12px; border:2px dashed var(--primary); color:var(--primary); background:none; border-radius:10px; font-weight:bold; cursor:pointer">📂 CARREGAR PLANILHA</button>
     </div>
     
     <div id="lista-entregas"></div>
     
-    <div style="padding: 15px; display:none" id="footer-ui">
-        <button onclick="reotimizar(true)" style="width:100%; background:var(--primary); color:#101820; border:none; padding:15px; border-radius:10px; font-weight:bold; cursor:pointer">🔄 RECALCULAR ROTA AGORA</button>
+    <div id="footer-ui" style="padding: 15px; display:none">
+        <button onclick="reotimizar(true)" style="width:100%; background:var(--primary); border:none; padding:12px; border-radius:8px; font-weight:800; cursor:pointer">🔄 RECALCULAR PELA MINHA POSIÇÃO</button>
     </div>
 </div>
 
@@ -85,121 +67,98 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    const map = L.map('map', { zoomControl: false }).setView([-16.6808, -49.2563], 13);
-    let tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-    let layerGrupo = L.layerGroup().addTo(map);
-    let dadosOriginais = [];
-    let marcadores = {};
-    let minhaPosicao = null;
+    const map = L.map('map', { zoomControl: false }).setView([-16.68, -49.25], 13);
+    let tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+    let layerMarkers = L.layerGroup().addTo(map);
+    let dados = [], marcadores = {}, minhaPos = null;
 
-    // Monitoramento Real do GPS
-    navigator.geolocation.watchPosition(pos => {
-        minhaPosicao = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-    }, null, { enableHighAccuracy: true });
+    navigator.geolocation.watchPosition(p => minhaPos = {lat: p.coords.latitude, lon: p.coords.longitude});
 
     function toggleTheme() {
-        const body = document.body;
-        const isDark = body.getAttribute('data-theme') === 'dark';
-        body.setAttribute('data-theme', isDark ? 'light' : 'dark');
-        tileLayer.setUrl(isDark ? 
-            'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png' : 
-            'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png'
-        );
+        const isDark = document.body.getAttribute('data-theme') === 'dark';
+        document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+        tiles.setUrl(isDark ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png');
     }
 
     document.getElementById('file-input').onchange = function(e) {
-        const file = e.target.files[0];
         const reader = new FileReader();
         reader.onload = function(evt) {
-            const wb = XLSX.read(evt.target.result, { type: 'binary' });
+            const wb = XLSX.read(evt.target.result, {type: 'binary'});
             const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-            
-            dadosOriginais = json.map((row, i) => ({
-                id: i,
-                lat: parseFloat(row.Latitude || row.lat || row.y),
-                lon: parseFloat(row.Longitude || row.lon || row.x),
-                addr: row.Endereco || row.address || "Endereço",
-                bairro: row.Bairro || row.setor || "GYN",
-                concluido: false
+            dados = json.map((r, i) => ({
+                id: i, 
+                lat: parseFloat(r.Latitude || r.lat), 
+                lon: parseFloat(r.Longitude || r.lon),
+                addr: r.Endereco || r.address || "Rua s/n",
+                bairro: r.Bairro || "",
+                done: false
             })).filter(p => !isNaN(p.lat));
-
             document.getElementById('upload-section').style.display = 'none';
             document.getElementById('footer-ui').style.display = 'block';
             reotimizar(true);
         };
-        reader.readAsBinaryString(file);
+        reader.readAsBinaryString(e.target.files[0]);
     };
 
-    function reotimizar(usarGps) {
-        let pendentes = dadosOriginais.filter(p => !p.concluido);
-        let concluidos = dadosOriginais.filter(p => p.concluido);
-        let novaRota = [];
-        
-        let atual = (usarGps && minhaPosicao) ? minhaPosicao : (pendentes.length > 0 ? pendentes[0] : null);
+    function reotimizar(pelaMinhaPos) {
+        let pendentes = dados.filter(d => !d.done);
+        let concluidos = dados.filter(d => d.done);
+        let rota = [];
+        let atual = (pelaMinhaPos && minhaPos) ? minhaPos : (pendentes[0] || null);
 
-        if (atual) {
-            while (pendentes.length > 0) {
-                pendentes.sort((a, b) => {
-                    return Math.hypot(a.lat - atual.lat, a.lon - atual.lon) - Math.hypot(b.lat - atual.lat, b.lon - atual.lon);
-                });
-                atual = pendentes.shift();
-                novaRota.push(atual);
-            }
+        while(pendentes.length > 0) {
+            pendentes.sort((a,b) => Math.hypot(a.lat - atual.lat, a.lon - atual.lon) - Math.hypot(b.lat - atual.lat, b.lon - atual.lon));
+            atual = pendentes.shift();
+            rota.push(atual);
         }
-        renderizar(novaRota, concluidos);
+        desenhar(rota, concluidos);
     }
 
-    function renderizar(pendentes, concluidos) {
-        layerGrupo.clearLayers();
+    function desenhar(pendentes, concluidos) {
+        layerMarkers.clearLayers();
         const lista = document.getElementById('lista-entregas');
         lista.innerHTML = '';
         marcadores = {};
 
-        [...pendentes, ...concluidos].forEach((p, idx) => {
-            const m = L.marker([p.lat, p.lon]).addTo(layerGrupo);
+        [...pendentes, ...concluidos].forEach((p, i) => {
+            const icon = L.divIcon({ className: 'custom-pin', iconSize: [12, 12] });
+            const m = L.marker([p.lat, p.lon], { icon }).addTo(layerMarkers);
             marcadores[p.id] = m;
 
             const card = document.createElement('div');
             card.id = `card-${p.id}`;
-            card.className = `entrega-card ${p.concluido ? 'done' : ''}`;
+            card.className = `entrega-card ${p.done ? 'done' : ''}`;
             card.onclick = () => focar(p.id);
             card.innerHTML = `
-                <div style="display:flex; justify:space-between; align-items:start">
+                <div style="display:flex; justify-content:space-between">
                     <small style="color:var(--accent); font-weight:800">${p.bairro}</small>
-                    ${!p.concluido ? `<b style="color:var(--primary); margin-left:auto">#${idx+1}</b>` : ''}
+                    ${!p.done ? `<b>#${i+1}</b>` : ''}
                 </div>
-                <div style="font-weight:600; margin:5px 0">${p.addr}</div>
+                <div style="font-weight:600; margin:5px 0; font-size:0.85rem">${p.addr}</div>
                 <div style="display:flex; gap:8px; margin-top:10px">
-                    <button onclick="event.stopPropagation(); irGps(${p.lat},${p.lon})" style="flex:1; background:var(--primary); border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer">MAPS</button>
-                    <button onclick="event.stopPropagation(); toggleStatus(${p.id})" style="flex:1; background:none; border:1px solid var(--border); color:var(--text); border-radius:8px; cursor:pointer">${p.concluido ? 'Reabrir' : 'Concluir'}</button>
+                    <button onclick="event.stopPropagation(); window.open('https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}')" style="flex:1; background:var(--primary); border:none; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer">MAPS</button>
+                    <button onclick="event.stopPropagation(); status(${p.id})" style="flex:1; background:none; border:1px solid var(--border); color:var(--text); border-radius:8px; cursor:pointer">${p.done ? 'Reabrir' : 'Ok'}</button>
                 </div>
             `;
             lista.appendChild(card);
         });
-        
-        if (pendentes.length === 0 && concluidos.length > 0) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        if(pendentes.length > 0) map.fitBounds(layerMarkers.getBounds(), {padding: [50,50]});
     }
 
     function focar(id) {
-        const p = dadosOriginais.find(x => x.id === id);
+        const p = dados.find(x => x.id === id);
         map.flyTo([p.lat, p.lon], 16);
         
-        // Limpa destaques anteriores
-        Object.values(marcadores).forEach(m => m.getElement()?.classList.remove('selected-marker'));
         document.querySelectorAll('.entrega-card').forEach(c => c.classList.remove('active'));
-
-        // Aplica novo destaque
-        marcadores[id].getElement()?.classList.add('selected-marker');
         document.getElementById(`card-${id}`).classList.add('active');
+
+        Object.values(marcadores).forEach(m => m.getElement().classList.remove('pin-active'));
+        marcadores[id].getElement().classList.add('pin-active');
     }
 
-    function irGps(lat, lon) {
-        window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`, '_blank');
-    }
-
-    function toggleStatus(id) {
-        const p = dadosOriginais.find(x => x.id === id);
-        p.concluido = !p.concluido;
+    function status(id) {
+        const p = dados.find(x => x.id === id);
+        p.done = !p.done;
         reotimizar(false);
     }
 </script>
