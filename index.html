@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PoupeRota Pro</title>
+    <title>PoupeRota Pro - No Logo</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -29,10 +29,9 @@
             border-bottom: 1px solid var(--border);
         }
 
-        /* Mapa */
         #map { position: absolute; top: 0; bottom: 0; width: 100%; z-index: 1; }
 
-        /* Botões Flutuantes no Mapa */
+        /* Botões Flutuantes */
         .map-controls {
             position: absolute; right: 15px; top: 75px; z-index: 1000;
             display: flex; flex-direction: column; gap: 10px;
@@ -43,37 +42,36 @@
             cursor: pointer; font-size: 1.2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
-        /* Gaveta de Endereços */
+        /* Gaveta (Drawer) */
         .drawer {
-            position: fixed; bottom: 0; left: 0; right: 0; height: 40vh;
+            position: fixed; bottom: 0; left: 0; right: 0; height: 45vh;
             background: var(--card); z-index: 1500; border-top: 1px solid var(--border);
             border-radius: 20px 20px 0 0; display: flex; flex-direction: column;
             box-shadow: 0 -5px 25px rgba(0,0,0,0.15); transition: height 0.3s ease;
         }
-        .drawer-handle { width: 40px; height: 5px; background: var(--border); margin: 10px auto; border-radius: 10px; }
+        .drawer-handle { width: 40px; height: 5px; background: var(--border); margin: 10px auto; border-radius: 10px; cursor: pointer; }
         
         #lista-entregas { flex-grow: 1; overflow-y: auto; padding: 0 15px; }
 
         .entrega-card {
             background: var(--bg); border-radius: 12px; padding: 15px; margin-bottom: 10px;
-            border: 2px solid transparent; cursor: pointer;
+            border: 2px solid transparent; cursor: pointer; transition: 0.2s;
         }
-        .entrega-card.active { border-color: var(--primary); background: rgba(0,209,178,0.05); }
+        .entrega-card.active { border-color: var(--primary); background: rgba(0,209,178,0.1); }
 
-        /* Botão Fixo na Gaveta */
         .drawer-footer { padding: 15px; border-top: 1px solid var(--border); background: var(--card); }
         .btn-main {
             width: 100%; padding: 14px; background: var(--primary); border: none;
             border-radius: 10px; color: #fff; font-weight: 800; cursor: pointer;
         }
 
-        /* PIN PULSANTE - GARANTIA DE FUNCIONAMENTO */
-        .leaflet-marker-icon.active-pin {
-            filter: hue-rotate(140deg) brightness(1.2) drop-shadow(0 0 10px var(--accent)) !important;
-            animation: pulse-pin 0.8s infinite alternate !important;
-            z-index: 1000 !important;
+        /* Estilo Dinâmico do Pin Selecionado */
+        .selected-marker {
+            filter: hue-rotate(150deg) brightness(1.5) drop-shadow(0 0 8px var(--accent)) !important;
+            animation: pulse-pin 0.8s infinite alternate;
+            z-index: 9999 !important;
         }
-        @keyframes pulse-pin { from { transform: scale(1); } to { transform: scale(1.4); } }
+        @keyframes pulse-pin { from { transform: scale(1); } to { transform: scale(1.3); } }
 
         @media (min-width: 768px) {
             .drawer { width: 380px; height: calc(100vh - 60px); top: 60px; right: 0; left: auto; border-radius: 0; }
@@ -85,140 +83,150 @@
 
     <div class="top-bar">
         <div style="display:flex; align-items:center; gap:10px">
-            <img src="logo.png" style="width:30px; height:30px" onerror="this.src='https://cdn-icons-png.flaticon.com/512/854/854878.png'">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#00d1b2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
             <h2 style="font-size: 1.1rem; margin:0">PoupeRota <span style="color:var(--accent)">PRO</span></h2>
         </div>
-        <div style="display:flex; gap:15px">
-            <span onclick="toggleTheme()" id="theme-icon" style="cursor:pointer; font-size:1.3rem">☀️</span>
-            <span onclick="alert('Configurações: Em breve!')" style="cursor:pointer; font-size:1.3rem">⚙️</span>
+        <div style="display:flex; gap:18px">
+            <span onclick="toggleTheme()" style="cursor:pointer; font-size:1.4rem" id="theme-btn">☀️</span>
+            <span onclick="alert('Configurações: Defina o raio de entrega no futuro.')" style="cursor:pointer; font-size:1.4rem">⚙️</span>
         </div>
     </div>
 
     <div id="map"></div>
 
     <div class="map-controls">
-        <div class="btn-float" onclick="centralizarRota()" title="Centralizar Visualização">🎯</div>
+        <div class="btn-float" onclick="centralizarVisao()">🎯</div>
     </div>
 
-    <div class="drawer" id="app-drawer">
-        <div class="drawer-handle" onclick="toggleDrawerHeight()"></div>
+    <div class="drawer" id="drawer">
+        <div class="drawer-handle" onclick="expandDrawer()"></div>
         
-        <div id="upload-placeholder" style="padding: 30px; text-align: center;">
-            <button onclick="document.getElementById('file-input').click()" class="btn-main" style="background:none; border: 2px dashed var(--primary); color: var(--primary)">📂 CARREGAR PLANILHA</button>
+        <div id="upload-box" style="padding: 20px; text-align: center;">
+            <p style="font-size: 0.9rem; margin-bottom: 15px;">Importe a sua lista para começar</p>
+            <button onclick="document.getElementById('file-input').click()" class="btn-main" style="background:none; border:2px dashed var(--primary); color:var(--primary)">📂 SELECIONAR EXCEL / CSV</button>
             <input type="file" id="file-input" style="display:none" accept=".xlsx, .xls, .csv">
         </div>
 
         <div id="lista-entregas"></div>
 
         <div class="drawer-footer" id="footer-actions" style="display:none">
-            <button class="btn-main" onclick="reotimizar(true)">🔄 RECALCULAR PELA MINHA POSIÇÃO</button>
+            <button class="btn-main" onclick="reotimizarRota(true)">🔄 RECALCULAR PELA MINHA POSIÇÃO</button>
         </div>
     </div>
 
 <script>
     const map = L.map('map', { zoomControl: false }).setView([-16.68, -49.25], 13);
-    let tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-    let layerGroup = L.layerGroup().addTo(map);
-    let dados = [], marcadores = {}, minhaPos = null;
+    let currentTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+    let markersLayer = L.layerGroup().addTo(map);
+    let routeData = [], markerMap = {}, myLocation = null;
 
-    // Monitorar GPS
+    // GPS em tempo real
     navigator.geolocation.watchPosition(p => {
-        minhaPos = { lat: p.coords.latitude, lon: p.coords.longitude };
+        myLocation = { lat: p.coords.latitude, lon: p.coords.longitude };
     }, null, { enableHighAccuracy: true });
 
     function toggleTheme() {
-        const body = document.body;
-        const isDark = body.getAttribute('data-theme') === 'dark';
-        body.setAttribute('data-theme', isDark ? 'light' : 'dark');
-        document.getElementById('theme-icon').innerText = isDark ? '🌙' : '☀️';
-        tiles.setUrl(isDark ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png');
+        const isDark = document.body.getAttribute('data-theme') === 'dark';
+        document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+        document.getElementById('theme-btn').innerText = isDark ? '🌙' : '☀️';
+        currentTiles.setUrl(isDark ? 
+            'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png' : 
+            'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png'
+        );
     }
 
-    function toggleDrawerHeight() {
-        const d = document.getElementById('app-drawer');
-        d.style.height = d.style.height === '80vh' ? '40vh' : '80vh';
+    function expandDrawer() {
+        const d = document.getElementById('drawer');
+        d.style.height = d.style.height === '85vh' ? '45vh' : '85vh';
     }
 
     document.getElementById('file-input').onchange = function(e) {
         const reader = new FileReader();
         reader.onload = function(evt) {
             const wb = XLSX.read(evt.target.result, {type: 'binary'});
-            const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-            dados = json.map((r, i) => ({
-                id: i, lat: parseFloat(r.Latitude || r.lat), lon: parseFloat(r.Longitude || r.lon),
-                addr: r.Endereco || r.address || "Rua s/n", bairro: r.Bairro || "", done: false
+            const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+            routeData = data.map((r, i) => ({
+                id: i, 
+                lat: parseFloat(r.Latitude || r.lat || r.LATITUDE), 
+                lon: parseFloat(r.Longitude || r.lon || r.LONGITUDE),
+                addr: r.Endereco || r.address || "Rua s/n",
+                bairro: r.Bairro || "", 
+                done: false
             })).filter(p => !isNaN(p.lat));
             
-            document.getElementById('upload-placeholder').style.display = 'none';
+            document.getElementById('upload-box').style.display = 'none';
             document.getElementById('footer-actions').style.display = 'block';
-            reotimizar(true);
+            reotimizarRota(true);
         };
         reader.readAsBinaryString(e.target.files[0]);
     };
 
-    function reotimizar(pelaMinhaPos) {
-        let pendentes = dados.filter(d => !d.done);
-        let rota = [];
-        let atual = (pelaMinhaPos && minhaPos) ? minhaPos : (pendentes[0] || null);
+    function reotimizarRota(useGps) {
+        let pends = routeData.filter(d => !d.done);
+        let sorted = [];
+        let start = (useGps && myLocation) ? myLocation : (pends[0] || null);
 
-        while(pendentes.length > 0 && atual) {
-            pendentes.sort((a,b) => Math.hypot(a.lat - atual.lat, a.lon - atual.lon) - Math.hypot(b.lat - atual.lat, b.lon - atual.lon));
-            atual = pendentes.shift();
-            rota.push(atual);
+        while(pends.length > 0 && start) {
+            pends.sort((a,b) => Math.hypot(a.lat - start.lat, a.lon - start.lon) - Math.hypot(b.lat - start.lat, b.lon - start.lon));
+            start = pends.shift();
+            sorted.push(start);
         }
-        renderizar(rota, dados.filter(d => d.done));
+        renderList(sorted, routeData.filter(d => d.done));
     }
 
-    function renderizar(pendentes, concluidos) {
-        layerGroup.clearLayers();
-        const lista = document.getElementById('lista-entregas');
-        lista.innerHTML = '';
-        const todos = [...pendentes, ...concluidos];
+    function renderList(pends, dones) {
+        markersLayer.clearLayers();
+        const container = document.getElementById('lista-entregas');
+        container.innerHTML = '';
+        const all = [...pends, ...dones];
 
-        todos.forEach((p, i) => {
-            const m = L.marker([p.lat, p.lon]).addTo(layerGroup);
-            marcadores[p.id] = m;
+        all.forEach((p, i) => {
+            const m = L.marker([p.lat, p.lon]).addTo(markersLayer);
+            markerMap[p.id] = m;
 
             const card = document.createElement('div');
             card.id = `card-${p.id}`;
             card.className = `entrega-card ${p.done ? 'done' : ''}`;
-            card.onclick = () => focar(p.id);
+            card.onclick = () => focarLocal(p.id);
             card.innerHTML = `
                 <div style="display:flex; justify-content:space-between">
-                    <small style="color:var(--accent); font-weight:800">#${i+1} - ${p.bairro}</small>
+                    <small style="color:var(--accent); font-weight:800; text-transform:uppercase">${p.bairro || 'Destino'}</small>
+                    ${!p.done ? `<b style="color:var(--primary)">#${i+1}</b>` : ''}
                 </div>
-                <div style="font-weight:600; margin:5px 0">${p.addr}</div>
+                <div style="font-weight:600; margin:5px 0; font-size:0.9rem">${p.addr}</div>
                 <div style="display:flex; gap:10px; margin-top:10px">
-                    <button onclick="event.stopPropagation(); window.open('https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}')" style="flex:1; background:var(--primary); border:none; padding:8px; border-radius:5px; color:white; font-weight:bold">GPS</button>
-                    <button onclick="event.stopPropagation(); alternarStatus(${p.id})" style="flex:1; background:none; border:1px solid var(--border); color:var(--text); border-radius:5px">${p.done ? '↩️' : '✅'}</button>
+                    <button onclick="event.stopPropagation(); window.open('https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}')" style="flex:1; background:var(--primary); border:none; padding:10px; border-radius:8px; color:white; font-weight:bold; cursor:pointer">GPS</button>
+                    <button onclick="event.stopPropagation(); toggleStatus(${p.id})" style="flex:1; background:none; border:1px solid var(--border); color:var(--text); border-radius:8px; cursor:pointer">${p.done ? '↩️' : '✅'}</button>
                 </div>
             `;
-            lista.appendChild(card);
+            container.appendChild(card);
         });
-        centralizarRota();
+        centralizarVisao();
     }
 
-    function focar(id) {
-        const p = dados.find(x => x.id === id);
+    function focarLocal(id) {
+        const p = routeData.find(x => x.id === id);
         map.flyTo([p.lat, p.lon], 16);
         
+        // UI Feedback
         document.querySelectorAll('.entrega-card').forEach(c => c.classList.remove('active'));
         document.getElementById(`card-${id}`).classList.add('active');
 
-        Object.values(marcadores).forEach(m => m.getElement()?.classList.remove('active-pin'));
-        marcadores[id].getElement()?.classList.add('active-pin');
+        // Pin Feedback
+        Object.values(markerMap).forEach(m => m.getElement()?.classList.remove('selected-marker'));
+        markerMap[id].getElement()?.classList.add('selected-marker');
     }
 
-    function centralizarRota() {
-        if (layerGroup.getLayers().length > 0) {
-            map.fitBounds(layerGroup.getBounds(), {padding: [50, 50]});
+    function centralizarVisao() {
+        if (markersLayer.getLayers().length > 0) {
+            map.fitBounds(markersLayer.getBounds(), {padding: [40, 40]});
         }
     }
 
-    function alternarStatus(id) {
-        const p = dados.find(x => x.id === id);
+    function toggleStatus(id) {
+        const p = routeData.find(x => x.id === id);
         p.done = !p.done;
-        reotimizar(false);
+        reotimizarRota(false);
     }
 </script>
 </body>
