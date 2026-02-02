@@ -10,149 +10,32 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     
     <style>
-        :root { 
-            --primary: #00d1b2; 
-            --accent: #ff7f50; 
-            --bg: #f4f7f6; 
-            --card: #ffffff; 
-            --text: #2d3748; 
-            --border: #e2e8f0;
-            --shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
+        :root { --primary: #00d1b2; --accent: #ff7f50; --bg: #f4f7f6; --card: #ffffff; --text: #2d3748; --border: #e2e8f0; }
+        [data-theme="dark"] { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --border: #334155; }
 
-        [data-theme="dark"] { 
-            --bg: #0f172a; 
-            --card: #1e293b; 
-            --text: #f8fafc; 
-            --border: #334155; 
-        }
-
-        body { 
-            margin: 0; 
-            font-family: 'Inter', sans-serif; 
-            display: flex; 
-            height: 100vh; 
-            background: var(--bg); 
-            color: var(--text); 
-            overflow: hidden; 
-        }
-
-        /* Layout Desktop */
-        #sidebar { 
-            width: 400px; 
-            background: var(--card); 
-            display: flex; 
-            flex-direction: column; 
-            z-index: 1000; 
-            border-right: 1px solid var(--border);
-            box-shadow: var(--shadow);
-            transition: 0.3s;
-        }
-
+        body { margin: 0; font-family: 'Inter', sans-serif; display: flex; height: 100vh; background: var(--bg); color: var(--text); overflow: hidden; }
+        #sidebar { width: 400px; background: var(--card); display: flex; flex-direction: column; z-index: 1000; border-right: 1px solid var(--border); }
         #map { flex-grow: 1; z-index: 1; }
 
-        /* Header e Busca */
-        .header { 
-            padding: 15px 20px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-        }
+        .header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+        #search-container { padding: 10px 15px; background: var(--card); border-bottom: 1px solid var(--border); }
+        #input-busca { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); box-sizing: border-box; }
 
-        #search-container {
-            padding: 10px 15px;
-            background: var(--card);
-            border-bottom: 1px solid var(--border);
-        }
+        #lista-entregas { flex-grow: 1; overflow-y: auto; padding: 15px; }
+        .entrega-card { background: var(--card); border-radius: 16px; padding: 16px; margin-bottom: 12px; border: 2px solid var(--border); cursor: pointer; }
+        .entrega-card.active { border-color: var(--primary); }
+        .entrega-card.done { opacity: 0.5; filter: grayscale(0.8); }
 
-        #input-busca {
-            width: 100%;
-            padding: 12px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            background: var(--bg);
-            color: var(--text);
-            box-sizing: border-box;
-            outline: none;
-            font-size: 0.9rem;
-        }
+        .custom-pin { background: var(--primary); border: 2px solid white; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); }
+        .pin-active { background: var(--accent) !important; width: 25px !important; height: 25px !important; z-index: 999 !important; }
 
-        /* Lista de Entregas */
-        #lista-entregas { 
-            flex-grow: 1; 
-            overflow-y: auto; 
-            padding: 15px; 
-            scroll-behavior: smooth;
-        }
+        .fab-gps { position: fixed; right: 20px; bottom: 20px; z-index: 999; background: var(--card); border: none; width: 50px; height: 50px; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: pointer; font-size: 20px; }
 
-        .entrega-card { 
-            background: var(--card); 
-            border-radius: 16px; 
-            padding: 16px; 
-            margin-bottom: 12px; 
-            border: 2px solid var(--border);
-            transition: all 0.2s ease;
-            cursor: pointer;
-        }
-
-        .entrega-card.active { 
-            border-color: var(--primary); 
-            box-shadow: 0 4px 15px rgba(0,209,178,0.2);
-        }
-
-        .entrega-card.done { 
-            opacity: 0.5; 
-            filter: grayscale(0.8);
-        }
-
-        /* Pins Customizados */
-        .custom-pin { 
-            background: var(--primary); 
-            border: 2px solid white; 
-            border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg);
-        }
-
-        .pin-active { 
-            background: var(--accent) !important;
-            animation: pulse 0.8s infinite alternate;
-        }
-
-        @keyframes pulse { 
-            from { transform: rotate(-45deg) scale(1); } 
-            to { transform: rotate(-45deg) scale(1.2); } 
-        }
-
-        .fab-gps {
-            position: fixed;
-            right: 20px;
-            bottom: 20px;
-            z-index: 999;
-            background: var(--card);
-            border: none;
-            width: 55px;
-            height: 55px;
-            border-radius: 50%;
-            box-shadow: var(--shadow);
-            cursor: pointer;
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Responsividade Mobile */
         @media (max-width: 768px) {
             body { flex-direction: column; }
-            #map { height: 50vh; width: 100%; }
-            #sidebar { 
-                width: 100%; 
-                height: 50vh; 
-                border-radius: 20px 20px 0 0;
-                margin-top: -20px;
-            }
-            .fab-gps { bottom: 52vh; width: 45px; height: 45px; font-size: 20px; }
+            #map { height: 50vh; }
+            #sidebar { width: 100%; height: 50vh; margin-top: -20px; border-radius: 20px 20px 0 0; }
+            .fab-gps { bottom: 52vh; }
         }
     </style>
 </head>
@@ -164,19 +47,18 @@
     <div class="header">
         <h1 style="font-size: 1.1rem; margin:0">PoupeRota <span style="color:var(--accent)">Pro</span></h1>
         <div style="display:flex; gap:12px">
-            <button onclick="limparDados()" title="Limpar Tudo" style="background:none; border:none; cursor:pointer; font-size:1.2rem">🗑️</button>
+            <button onclick="limparDados()" style="background:none; border:none; cursor:pointer; font-size:1.2rem">🗑️</button>
             <button onclick="toggleTheme()" style="background:none; border:none; cursor:pointer; font-size:1.2rem">🌓</button>
         </div>
     </div>
 
     <div id="search-container">
-        <input type="text" id="input-busca" placeholder="🔍 Buscar endereço ou bairro...">
+        <input type="text" id="input-busca" placeholder="🔍 Buscar endereço...">
     </div>
 
     <div id="upload-section" style="padding: 20px; text-align:center">
         <input type="file" id="file-input" style="display:none" accept=".csv, .xlsx, .xls">
-        <button onclick="document.getElementById('file-input').click()" 
-            style="width:100%; padding:15px; border:2px dashed var(--primary); color:var(--primary); background:none; border-radius:12px; font-weight:800; cursor:pointer">
+        <button onclick="document.getElementById('file-input').click()" style="width:100%; padding:15px; border:2px dashed var(--primary); color:var(--primary); background:none; border-radius:12px; font-weight:800; cursor:pointer">
             📦 IMPORTAR PLANILHA
         </button>
     </div>
@@ -184,9 +66,7 @@
     <div id="lista-entregas"></div>
     
     <div id="footer-ui" style="padding: 15px; border-top: 1px solid var(--border); display:none">
-        <button onclick="reotimizar(true)" style="width:100%; background:var(--primary); border:none; padding:15px; border-radius:10px; font-weight:900; cursor:pointer; color:#111">
-            🔄 RECALCULAR PELA MINHA POSIÇÃO
-        </button>
+        <button onclick="reotimizar(true)" style="width:100%; background:var(--primary); border:none; padding:15px; border-radius:10px; font-weight:900; cursor:pointer; color:#111">🔄 REOTIMIZAR</button>
     </div>
 </div>
 
@@ -194,12 +74,33 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+    // 1. Inicialização do Mapa
     const map = L.map('map', { zoomControl: false }).setView([-16.68, -49.25], 13);
     let tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
     let layerGroup = L.layerGroup().addTo(map);
     let dados = [], marcadores = {}, minhaPos = null;
 
-    // Inicialização e Recuperação de Dados
+    // 2. Funções de UI (Tema e Limpeza)
+    function toggleTheme() {
+        const body = document.body;
+        const currentTheme = body.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        body.setAttribute('data-theme', newTheme);
+        
+        const tileUrl = newTheme === 'dark' 
+            ? 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png'
+            : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+        tiles.setUrl(tileUrl);
+    }
+
+    function limparDados() {
+        if(confirm("Apagar rota atual?")) {
+            localStorage.removeItem('poupe_rota_dados');
+            window.location.reload();
+        }
+    }
+
+    // 3. Persistência e Carregamento
     window.onload = () => {
         const salvos = localStorage.getItem('poupe_rota_dados');
         if (salvos) {
@@ -210,65 +111,55 @@
         }
     };
 
-    // Monitoramento GPS
+    // 4. GPS
     navigator.geolocation.watchPosition(
         p => { minhaPos = { lat: p.coords.latitude, lon: p.coords.longitude }; },
-        e => console.warn("Aguardando GPS..."),
+        e => console.log("Aguardando GPS"),
         { enableHighAccuracy: true }
     );
 
     function centralizarGps() {
         if(minhaPos) map.flyTo([minhaPos.lat, minhaPos.lon], 16);
-        else alert("Sinal GPS não encontrado ainda.");
     }
 
-    function toggleTheme() {
-        const body = document.body;
-        const isDark = body.getAttribute('data-theme') === 'dark';
-        body.setAttribute('data-theme', isDark ? 'light' : 'dark');
-        tiles.setUrl(isDark ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png');
-    }
-
-    // Busca em tempo real
-    document.getElementById('input-busca').addEventListener('input', function(e) {
-        const termo = e.target.value.toLowerCase();
-        document.querySelectorAll('.entrega-card').forEach(card => {
-            card.style.display = card.innerText.toLowerCase().includes(termo) ? "block" : "none";
-        });
-    });
-
-    document.getElementById('file-input').onchange = function(e) {
+    // 5. Importação de Arquivo
+    document.getElementById('file-input').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if(!file) return;
         const reader = new FileReader();
         reader.onload = function(evt) {
-            const wb = XLSX.read(evt.target.result, {type: 'binary'});
-            const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-            
-            dados = json.map((r, i) => ({
-                id: Date.now() + i,
-                lat: parseFloat(r.Latitude || r.lat || r.LATITUDE),
-                lon: parseFloat(r.Longitude || r.lon || r.LONGITUDE),
-                addr: r.Endereco || r.address || r.ENDERECO || "Endereço",
-                bairro: r.Bairro || r.BAIRRO || "Bairro não informado",
-                done: false
-            })).filter(p => !isNaN(p.lat));
+            try {
+                const data = evt.target.result;
+                const workbook = XLSX.read(data, {type: 'binary'});
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(sheet);
+                
+                dados = json.map((r, i) => ({
+                    id: Date.now() + i,
+                    lat: parseFloat(r.Latitude || r.lat || r.LATITUDE),
+                    lon: parseFloat(r.Longitude || r.lon || r.LONGITUDE),
+                    addr: r.Endereco || r.address || r.ENDERECO || "Endereço",
+                    bairro: r.Bairro || r.BAIRRO || "Bairro",
+                    done: false
+                })).filter(p => !isNaN(p.lat));
 
-            localStorage.setItem('poupe_rota_dados', JSON.stringify(dados));
-            document.getElementById('upload-section').style.display = 'none';
-            document.getElementById('footer-ui').style.display = 'block';
-            reotimizar(true);
+                if(dados.length === 0) {
+                    alert("Nenhuma coordenada válida encontrada na planilha!");
+                    return;
+                }
+
+                localStorage.setItem('poupe_rota_dados', JSON.stringify(dados));
+                document.getElementById('upload-section').style.display = 'none';
+                document.getElementById('footer-ui').style.display = 'block';
+                reotimizar(true);
+            } catch (err) {
+                alert("Erro ao ler arquivo: " + err.message);
+            }
         };
         reader.readAsBinaryString(file);
-    };
+    });
 
-    function limparDados() {
-        if(confirm("Deseja apagar toda a rota atual?")) {
-            localStorage.removeItem('poupe_rota_dados');
-            location.reload();
-        }
-    }
-
+    // 6. Roteirização e Renderização
     function reotimizar(usarGps) {
         let pendentes = dados.filter(d => !d.done);
         let concluidos = dados.filter(d => d.done);
@@ -280,7 +171,6 @@
             atual = pendentes.shift();
             rotaCalculada.push(atual);
         }
-        
         dados = [...rotaCalculada, ...concluidos];
         localStorage.setItem('poupe_rota_dados', JSON.stringify(dados));
         renderizar(rotaCalculada, concluidos);
@@ -294,11 +184,11 @@
         layerGroup.clearLayers();
         const lista = document.getElementById('lista-entregas');
         lista.innerHTML = '';
-        
         const total = [...pendentes, ...concluidos];
+
         total.forEach((p, i) => {
             const m = L.marker([p.lat, p.lon], { 
-                icon: L.divIcon({ className: 'custom-pin', iconSize: [20,20], iconAnchor: [10, 20] }) 
+                icon: L.divIcon({ className: 'custom-pin', iconSize: [18,18], iconAnchor: [9, 18] }) 
             }).addTo(layerGroup);
             marcadores[p.id] = m;
 
@@ -306,4 +196,46 @@
             card.id = `card-${p.id}`;
             card.className = `entrega-card ${p.done ? 'done' : ''}`;
             card.onclick = () => focar(p.id);
-            card.innerHTML =
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between">
+                    <small style="color:var(--accent); font-weight:800">${p.bairro}</small>
+                    ${!p.done ? `<b style="color:var(--primary)">#${i+1}</b>` : ''}
+                </div>
+                <div style="font-weight:600; margin:5px 0; font-size:0.9rem">${p.addr}</div>
+                <div style="display:flex; gap:8px; margin-top:10px">
+                    <button onclick="event.stopPropagation(); window.open('https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}', '_blank')" style="flex:2; background:var(--primary); border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer">MAPS</button>
+                    <button onclick="event.stopPropagation(); alternar(${p.id})" style="flex:1; background:none; border:1px solid var(--border); color:var(--text); border-radius:8px; cursor:pointer">${p.done ? '↩️' : '✅'}</button>
+                </div>
+            `;
+            lista.appendChild(card);
+        });
+        if(total.length > 0) map.fitBounds(layerGroup.getBounds(), {padding: [40,40]});
+    }
+
+    function focar(id) {
+        const p = dados.find(x => x.id === id);
+        map.flyTo([p.lat, p.lon], 16);
+        document.querySelectorAll('.entrega-card').forEach(c => c.classList.remove('active'));
+        document.getElementById(`card-${id}`).classList.add('active');
+        document.getElementById(`card-${id}`).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        Object.values(marcadores).forEach(m => m.getElement()?.classList.remove('pin-active'));
+        marcadores[id].getElement()?.classList.add('pin-active');
+    }
+
+    function alternar(id) {
+        const p = dados.find(x => x.id === id);
+        p.done = !p.done;
+        localStorage.setItem('poupe_rota_dados', JSON.stringify(dados));
+        renderizarPelosDadosAtuais();
+    }
+
+    document.getElementById('input-busca').addEventListener('input', (e) => {
+        const t = e.target.value.toLowerCase();
+        document.querySelectorAll('.entrega-card').forEach(c => {
+            c.style.display = c.innerText.toLowerCase().includes(t) ? "block" : "none";
+        });
+    });
+</script>
+</body>
+</html>
