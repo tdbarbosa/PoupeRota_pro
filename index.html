@@ -10,12 +10,27 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     
     <style>
-        :root { --primary: #00d1b2; --accent: #ff7f50; --bg: #f4f7f6; --card: #ffffff; --text: #2d3748; --border: #e2e8f0; --danger: #ff4757; }
+        :root { --primary: #00d1b2; --accent: #ff7f50; --bg: #f4f7f6; --card: #ffffff; --text: #2d3748; --border: #e2e8f0; --danger: #ff4757; --success: #2ecc71; }
         [data-theme="dark"] { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --border: #334155; }
 
         body { margin: 0; font-family: 'Inter', sans-serif; height: 100vh; background: var(--bg); color: var(--text); overflow: hidden; }
         #map { position: absolute; top: 0; bottom: 0; width: 100%; z-index: 1; }
 
+        /* Estilo dos Pinos (Marcadores) */
+        .custom-pin { 
+            background-color: var(--primary); 
+            border: 2px solid white; 
+            border-radius: 50% 50% 50% 0; 
+            transform: rotate(-45deg); 
+            width: 20px !important; 
+            height: 20px !important;
+        }
+        /* Cores de Status para os Pinos */
+        .pin-status-done { background-color: var(--success) !important; }
+        .pin-status-failed { background-color: var(--danger) !important; }
+        .pin-active { outline: 3px solid #000; box-shadow: 0 0 10px var(--primary); z-index: 9999 !important; }
+
+        /* Bandeja */
         #sheet {
             position: absolute; bottom: 0; left: 0; right: 0; height: 80vh;
             background: var(--card); z-index: 1000; border-radius: 24px 24px 0 0;
@@ -28,19 +43,15 @@
 
         #lista-entregas { flex-grow: 1; overflow-y: auto; padding: 15px; }
         .entrega-card { background: var(--bg); border-radius: 16px; padding: 15px; margin-bottom: 12px; border: 2px solid transparent; }
-        .entrega-card.active { border-color: var(--primary); background: var(--card); }
-        .entrega-card.done { opacity: 0.5; border-color: #2ecc71; }
-        .entrega-card.failed { border-color: var(--danger); background: rgba(255, 71, 87, 0.1); }
+        .entrega-card.active { border-color: var(--primary); }
+        .entrega-card.done { opacity: 0.5; border-left: 8px solid var(--success); }
+        .entrega-card.failed { border-left: 8px solid var(--danger); background: rgba(255, 71, 87, 0.05); }
 
         .side-controls { position: fixed; right: 15px; top: 15px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
         .fab { width: 45px; height: 45px; background: var(--card); border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--text); font-weight: bold; }
 
-        .btn-nav { padding: 12px; border-radius: 10px; border: none; font-weight: 800; cursor: pointer; flex: 1; color: white; }
-        .btn-check { background: var(--card); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; padding: 8px; color: var(--text); font-size: 0.7rem; }
-
-        .custom-pin { background: var(--primary); border: 2px solid white; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); }
-        .pin-failed { background: var(--danger) !important; }
-        .pin-active { outline: 3px solid var(--primary); width: 24px !important; height: 24px !important; }
+        .btn-nav { padding: 12px; border-radius: 10px; border: none; font-weight: 800; cursor: pointer; flex: 1; color: white; text-decoration: none; text-align: center; font-size: 0.8rem; }
+        .btn-check { background: var(--card); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; padding: 10px; color: var(--text); font-size: 0.75rem; font-weight: bold; }
 
         #menu-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 3000; display: none; align-items: center; justify-content: center; padding: 20px; }
         .menu-card { background: var(--card); padding: 25px; border-radius: 20px; width: 100%; max-width: 380px; }
@@ -82,14 +93,11 @@
 <div id="menu-overlay" onclick="toggleMenu()">
     <div class="menu-card" onclick="event.stopPropagation()">
         <h3 style="margin-top:0">Configurações</h3>
-        <p style="font-size:0.8rem; font-weight:bold; margin-bottom:5px">ESTILO DO MAPA</p>
-        <div style="display:flex; gap:10px; margin-bottom:20px">
-            <button onclick="setMapLayer('vetor')" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); cursor:pointer">Normal</button>
-            <button onclick="setMapLayer('satelite')" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); cursor:pointer">Satélite</button>
-        </div>
-        <button onclick="toggleTheme()" style="width:100%; padding:12px; margin-bottom:10px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); cursor:pointer">🌓 Alternar Cores</button>
-        <button onclick="limparDados()" style="width:100%; padding:12px; border-radius:10px; border:none; background:var(--danger); color:white; font-weight:bold; cursor:pointer">🗑️ Limpar Rota</button>
-        <button onclick="toggleMenu()" style="width:100%; margin-top:20px; background:none; border:none; color:var(--primary); font-weight:bold; cursor:pointer">Fechar</button>
+        <button onclick="setMapLayer('vetor')" style="width:100%; padding:12px; margin-bottom:10px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text);">🗺️ Mapa Normal</button>
+        <button onclick="setMapLayer('satelite')" style="width:100%; padding:12px; margin-bottom:10px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text);">🛰️ Mapa Satélite</button>
+        <button onclick="toggleTheme()" style="width:100%; padding:12px; margin-bottom:10px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text);">🌓 Alternar Tema</button>
+        <button onclick="limparDados()" style="width:100%; padding:12px; border-radius:10px; border:none; background:var(--danger); color:white; font-weight:bold;">🗑️ Limpar Rota</button>
+        <button onclick="toggleMenu()" style="width:100%; margin-top:20px; background:none; border:none; color:var(--primary); font-weight:bold;">Fechar</button>
     </div>
 </div>
 
@@ -97,10 +105,7 @@
 <script>
     const map = L.map('map', { zoomControl: false, tap: false }).setView([-16.68, -49.25], 13);
     let currentLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-    
-    // CORREÇÃO AQUI: Usando FeatureGroup em vez de LayerGroup
     let layerGroup = L.featureGroup().addTo(map);
-    
     let dados = [], marcadores = {}, minhaPos = null;
 
     function toggleSheet() { document.getElementById('sheet').classList.toggle('expanded'); }
@@ -113,6 +118,7 @@
         } else {
             currentLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
         }
+        toggleMenu();
     }
 
     window.onload = () => {
@@ -172,14 +178,25 @@
         layerGroup.clearLayers();
         const lista = document.getElementById('lista-entregas');
         lista.innerHTML = '';
+        marcadores = {};
         
         const concluidos = dados.filter(d => d.status === 'done').length;
         document.getElementById('progress-text').innerText = `${concluidos} / ${dados.length}`;
 
         dados.forEach((p, i) => {
+            // Lógica de classe do pino baseada no status
+            let statusClass = '';
+            if(p.status === 'done') statusClass = 'pin-status-done';
+            if(p.status === 'failed') statusClass = 'pin-status-failed';
+
             const m = L.marker([p.lat, p.lon], { 
-                icon: L.divIcon({ className: `custom-pin ${p.status==='failed'?'pin-failed':''}`, iconSize: [20,20], iconAnchor: [10, 20] }) 
+                icon: L.divIcon({ 
+                    className: `custom-pin ${statusClass}`, 
+                    iconSize: [20,20], 
+                    iconAnchor: [10, 20] 
+                }) 
             }).addTo(layerGroup);
+            
             marcadores[p.id] = m;
 
             const card = document.createElement('div');
@@ -191,24 +208,23 @@
                     <small style="color:var(--accent); font-weight:800">${p.bairro}</small>
                     <small style="opacity:0.6; font-size:0.6rem">#${i+1}</small>
                 </div>
-                <div style="font-weight:600; font-size:0.9rem; margin-bottom:12px">${p.addr}</div>
+                <div style="font-weight:600; font-size:0.9rem; margin-bottom:12px; color:var(--text)">${p.addr}</div>
                 
                 <div style="display:flex; gap:5px; margin-bottom:10px">
-                    <button class="btn-nav" onclick="event.stopPropagation(); window.open('https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}')" style="background:#4285F4">MAPS</button>
-                    <button class="btn-nav" onclick="event.stopPropagation(); window.open('waze://?ll=${p.lat},${p.lon}&navigate=yes')" style="background:#33CCFF">WAZE</button>
+                    <a class="btn-nav" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}" target="_blank" style="background:#4285F4">MAPS</a>
+                    <a class="btn-nav" href="waze://?ll=${p.lat},${p.lon}&navigate=yes" style="background:#33CCFF">WAZE</a>
                 </div>
 
                 <div style="display:flex; gap:5px">
-                    <button class="btn-check" onclick="event.stopPropagation(); mudarStatus('${p.id}', 'done')" style="flex:1">✅ Sim</button>
-                    <button class="btn-check" onclick="event.stopPropagation(); mudarStatus('${p.id}', 'failed')" style="flex:1">❌ Não</button>
+                    <button class="btn-check" onclick="event.stopPropagation(); mudarStatus('${p.id}', 'done')" style="flex:1; border-color:var(--success)">✅ Entregue</button>
+                    <button class="btn-check" onclick="event.stopPropagation(); mudarStatus('${p.id}', 'failed')" style="flex:1; border-color:var(--danger)">❌ Falhou</button>
                     <button class="btn-check" onclick="event.stopPropagation(); mudarStatus('${p.id}', 'pendente')">↩️</button>
                 </div>
             `;
             lista.appendChild(card);
         });
         
-        // CORREÇÃO AQUI: getBounds agora funciona porque layerGroup é FeatureGroup
-        if(dados.length > 0 && layerGroup.getLayers().length > 0) {
+        if(dados.length > 0) {
             map.fitBounds(layerGroup.getBounds(), {padding: [50, 50]});
         }
     }
@@ -217,14 +233,25 @@
         const p = dados.find(x => x.id == id);
         if(!p) return;
         map.flyTo([p.lat, p.lon], 16);
+        
         document.querySelectorAll('.entrega-card').forEach(c => c.classList.remove('active'));
         const el = document.getElementById(`card-${id}`);
         if(el) {
             el.classList.add('active');
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-        Object.values(marcadores).forEach(m => m.getElement()?.classList.remove('pin-active'));
-        if(marcadores[id]) marcadores[id].getElement()?.classList.add('pin-active');
+
+        // Remove destaque de todos e coloca no selecionado
+        Object.values(marcadores).forEach(m => {
+            const icon = m.getElement();
+            if(icon) icon.classList.remove('pin-active');
+        });
+        
+        if(marcadores[id]) {
+            const activeIcon = marcadores[id].getElement();
+            if(activeIcon) activeIcon.classList.add('pin-active');
+        }
+        
         document.getElementById('sheet').classList.remove('expanded');
     }
 
@@ -233,7 +260,7 @@
         if(p) {
             p.status = status;
             localStorage.setItem('poupe_rota_dados', JSON.stringify(dados));
-            renderizar();
+            renderizar(); // Isso vai redesenhar os pinos com a nova cor
         }
     }
 
@@ -243,7 +270,7 @@
         b.setAttribute('data-theme', isDark ? 'light' : 'dark');
     }
 
-    function limparDados() { if(confirm("Limpar rota?")) { localStorage.clear(); location.reload(); } }
+    function limparDados() { if(confirm("Limpar toda a rota?")) { localStorage.clear(); location.reload(); } }
 </script>
 </body>
 </html>
