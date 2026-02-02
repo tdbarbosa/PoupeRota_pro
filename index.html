@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PoupeRota Pro</title>
+    <title>PoupeRota Pro - Master</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -13,7 +13,7 @@
     <style>
         :root {
             --primary: #00d1b2; --accent: #ff7f50; --bg: #f4f7f6;
-            --card: #ffffff; --text: #1a202c; --border: #e2e8f0;
+            --card: #ffffff; --text: #1a202c; --border: #e2e8f0; --done: #2ecc71;
         }
         [data-theme="dark"] {
             --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --border: #334155;
@@ -21,6 +21,7 @@
 
         body, html { margin: 0; padding: 0; height: 100%; font-family: 'Inter', sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
 
+        /* Barra de Topo */
         .top-bar {
             position: fixed; top: 0; left: 0; right: 0; height: 60px;
             background: var(--card); display: flex; align-items: center;
@@ -28,65 +29,70 @@
             border-bottom: 1px solid var(--border);
         }
 
-        #map { position: absolute; top: 0; bottom: 0; width: 100%; z-index: 1; background: #e5e3df; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; z-index: 1; }
 
+        /* Botões Flutuantes */
         .map-controls {
             position: absolute; right: 15px; top: 75px; z-index: 1000;
             display: flex; flex-direction: column; gap: 10px;
         }
         .btn-float {
             width: 45px; height: 45px; background: var(--card); border: 1px solid var(--border);
-            border-radius: 10px; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; font-size: 1.2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border-radius: 12px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
+        /* Gaveta Deslizante (Bandeja) */
         .drawer {
             position: fixed; bottom: 0; left: 0; right: 0; height: 45vh;
             background: var(--card); z-index: 1500; border-top: 1px solid var(--border);
-            border-radius: 20px 20px 0 0; display: flex; flex-direction: column;
-            box-shadow: 0 -5px 25px rgba(0,0,0,0.15); transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 24px 24px 0 0; display: flex; flex-direction: column;
+            box-shadow: 0 -8px 30px rgba(0,0,0,0.2); transition: height 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
         }
-        .drawer-handle { width: 40px; height: 5px; background: var(--border); margin: 10px auto; border-radius: 10px; cursor: pointer; }
+        .drawer.expanded { height: 85vh; }
+        .drawer-handle { width: 50px; height: 6px; background: var(--border); margin: 12px auto; border-radius: 10px; cursor: pointer; }
         
-        #lista-entregas { flex-grow: 1; overflow-y: auto; padding: 0 15px; }
+        #lista-entregas { flex-grow: 1; overflow-y: auto; padding: 0 15px 20px 15px; }
 
+        /* Cards de Endereço */
         .entrega-card {
-            background: var(--bg); border-radius: 12px; padding: 15px; margin-bottom: 10px;
-            border: 2px solid transparent; cursor: pointer; transition: 0.2s;
+            background: var(--bg); border-radius: 16px; padding: 18px; margin-bottom: 12px;
+            border: 2px solid transparent; cursor: pointer; transition: 0.3s;
         }
-        .entrega-card.active { border-color: var(--primary); background: rgba(0,209,178,0.1); }
-        .entrega-card.done { opacity: 0.4; filter: grayscale(0.8); }
+        .entrega-card.active { border-color: var(--primary); background: rgba(0,209,178,0.08); }
+        .entrega-card.is-done { border-color: var(--done); opacity: 0.7; }
+        .entrega-card.is-done b { color: var(--done) !important; }
 
-        .drawer-footer { padding: 15px; border-top: 1px solid var(--border); background: var(--card); }
+        .drawer-footer { padding: 15px 20px 25px 20px; border-top: 1px solid var(--border); background: var(--card); }
         .btn-main {
-            width: 100%; padding: 14px; background: var(--primary); border: none;
-            border-radius: 10px; color: #fff; font-weight: 800; cursor: pointer;
+            width: 100%; padding: 16px; background: var(--primary); border: none;
+            border-radius: 14px; color: #fff; font-weight: 800; cursor: pointer; font-size: 1rem;
         }
 
-        /* PIN QUE BRILHA E PULSA */
+        /* PIN PULSANTE LARANJA */
         .selected-marker {
-            filter: hue-rotate(150deg) brightness(1.5) drop-shadow(0 0 12px var(--accent)) !important;
-            animation: pulse-pin 0.6s infinite alternate;
+            filter: hue-rotate(140deg) brightness(1.2) drop-shadow(0 0 12px var(--accent)) !important;
+            animation: pulse-pin 0.6s infinite alternate !important;
             z-index: 9999 !important;
         }
         @keyframes pulse-pin { from { transform: scale(1); } to { transform: scale(1.4); } }
 
         @media (min-width: 768px) {
-            .drawer { width: 380px; height: calc(100vh - 60px); top: 60px; right: 0; left: auto; border-radius: 0; }
-            #map { width: calc(100% - 380px); }
+            .drawer { width: 400px; height: calc(100vh - 60px); top: 60px; right: 0; left: auto; border-radius: 0; }
+            #map { width: calc(100% - 400px); }
         }
     </style>
 </head>
 <body data-theme="dark">
 
     <div class="top-bar">
-        <div style="display:flex; align-items:center; gap:10px">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00d1b2" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
-            <h2 style="font-size: 1rem; margin:0; letter-spacing: -0.5px">PoupeRota <span style="color:var(--accent)">PRO</span></h2>
+        <div style="display:flex; align-items:center; gap:12px">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00d1b2" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+            <h2 style="font-size: 1.1rem; margin:0">PoupeRota <span style="color:var(--accent)">PRO</span></h2>
         </div>
-        <div style="display:flex; gap:15px">
+        <div style="display:flex; gap:18px">
             <span onclick="toggleTheme()" id="theme-btn" style="cursor:pointer; font-size:1.4rem">☀️</span>
-            <span onclick="location.reload()" style="cursor:pointer; font-size:1.4rem">⚙️</span>
+            <span onclick="abrirConfig()" style="cursor:pointer; font-size:1.4rem">⚙️</span>
         </div>
     </div>
 
@@ -97,9 +103,9 @@
     </div>
 
     <div class="drawer" id="drawer">
-        <div class="drawer-handle" onclick="expandDrawer()"></div>
+        <div class="drawer-handle" onclick="toggleDrawer()"></div>
         
-        <div id="upload-box" style="padding: 20px; text-align: center;">
+        <div id="upload-box" style="padding: 40px 20px; text-align: center;">
             <button onclick="document.getElementById('file-input').click()" class="btn-main" style="background:none; border:2px dashed var(--primary); color:var(--primary)">📂 IMPORTAR PLANILHA</button>
             <input type="file" id="file-input" style="display:none" accept=".xlsx, .xls, .csv">
         </div>
@@ -113,35 +119,33 @@
 
 <script>
     const map = L.map('map', { zoomControl: false }).setView([-16.68, -49.25], 13);
-    
-    // URLs de Tiles Corrigidas
     const urlDark = 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png';
-    const urlLight = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'; // Mapa Claro Padrão
+    const urlLight = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
     let currentTiles = L.tileLayer(urlDark).addTo(map);
     let markersLayer = L.layerGroup().addTo(map);
     let routeData = [], markerMap = {}, myLocation = null;
 
+    // GPS REAL
     navigator.geolocation.watchPosition(p => {
         myLocation = { lat: p.coords.latitude, lon: p.coords.longitude };
     }, null, { enableHighAccuracy: true });
 
     function toggleTheme() {
-        const body = document.body;
-        const isDark = body.getAttribute('data-theme') === 'dark';
+        const isDark = document.body.getAttribute('data-theme') === 'dark';
         const newTheme = isDark ? 'light' : 'dark';
-        
-        body.setAttribute('data-theme', newTheme);
+        document.body.setAttribute('data-theme', newTheme);
         document.getElementById('theme-btn').innerText = newTheme === 'dark' ? '☀️' : '🌙';
-        
-        // Troca o mapa na hora
         map.removeLayer(currentTiles);
         currentTiles = L.tileLayer(newTheme === 'dark' ? urlDark : urlLight).addTo(map);
     }
 
-    function expandDrawer() {
-        const d = document.getElementById('drawer');
-        d.style.height = (d.style.height === '85vh') ? '45vh' : '85vh';
+    function toggleDrawer() {
+        document.getElementById('drawer').classList.toggle('expanded');
+    }
+
+    function abrirConfig() {
+        alert("Configurações:\n- Modo de Otimização: Distância Curta\n- Unidade: Quilômetros\n- GPS: Google Maps");
     }
 
     document.getElementById('file-input').onchange = function(e) {
@@ -153,8 +157,8 @@
                 id: i, 
                 lat: parseFloat(r.Latitude || r.lat || r.LATITUDE), 
                 lon: parseFloat(r.Longitude || r.lon || r.LONGITUDE),
-                addr: r.Endereco || r.address || "Rua s/n",
-                bairro: r.Bairro || "Entrega", 
+                addr: r.Endereco || r.address || r.ENDERECO || "Endereço",
+                bairro: r.Bairro || r.BAIRRO || "Destino", 
                 done: false
             })).filter(p => !isNaN(p.lat));
             
@@ -190,17 +194,17 @@
 
             const card = document.createElement('div');
             card.id = `card-${p.id}`;
-            card.className = `entrega-card ${p.done ? 'done' : ''}`;
+            card.className = `entrega-card ${p.done ? 'is-done' : ''}`;
             card.onclick = () => focarLocal(p.id);
             card.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center">
                     <small style="color:var(--accent); font-weight:800; text-transform:uppercase">${p.bairro}</small>
-                    ${!p.done ? `<b style="color:var(--primary); font-size:1.1rem">#${i+1}</b>` : '✅'}
+                    <b style="color:var(--primary)">${p.done ? 'CONCLUÍDO' : '#' + (i+1)}</b>
                 </div>
-                <div style="font-weight:600; margin:5px 0; font-size:0.9rem">${p.addr}</div>
+                <div style="font-weight:600; margin:8px 0; font-size:0.95rem">${p.addr}</div>
                 <div style="display:flex; gap:10px; margin-top:10px">
-                    <button onclick="event.stopPropagation(); window.open('https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}')" style="flex:1; background:var(--primary); border:none; padding:10px; border-radius:8px; color:white; font-weight:bold; cursor:pointer">MAPS</button>
-                    <button onclick="event.stopPropagation(); toggleStatus(${p.id})" style="flex:1; background:none; border:1px solid var(--border); color:var(--text); border-radius:8px; cursor:pointer">${p.done ? '↩️' : 'CONCLUIR'}</button>
+                    <button onclick="event.stopPropagation(); window.open('https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}')" style="flex:1; background:var(--primary); border:none; padding:12px; border-radius:10px; color:white; font-weight:bold; cursor:pointer">NAVEGAR</button>
+                    <button onclick="event.stopPropagation(); toggleStatus(${p.id})" style="flex:1; background:none; border:1px solid var(--border); color:var(--text); border-radius:10px; cursor:pointer; font-weight:600">${p.done ? 'REABRIR' : 'CONCLUIR'}</button>
                 </div>
             `;
             container.appendChild(card);
@@ -215,16 +219,11 @@
         document.querySelectorAll('.entrega-card').forEach(c => c.classList.remove('active'));
         document.getElementById(`card-${id}`).classList.add('active');
 
-        Object.values(markerMap).forEach(m => {
-            const el = m.getElement();
-            if(el) el.classList.remove('selected-marker');
-        });
+        Object.values(markerMap).forEach(m => m.getElement()?.classList.remove('selected-marker'));
+        markerMap[id].getElement()?.classList.add('selected-marker');
         
-        const el = markerMap[id].getElement();
-        if(el) el.classList.add('selected-marker');
-        
-        // Fecha um pouco a gaveta no mobile para ver o mapa
-        if(window.innerWidth < 768) document.getElementById('drawer').style.height = '45vh';
+        // Retrai a gaveta para ver o pino pulsando
+        if(window.innerWidth < 768) document.getElementById('drawer').classList.remove('expanded');
     }
 
     function centralizarVisao() {
@@ -236,7 +235,7 @@
     function toggleStatus(id) {
         const p = routeData.find(x => x.id === id);
         p.done = !p.done;
-        reotimizarRota(false);
+        reotimizarRota(false); // Recalcula mantendo a ordem lógica
     }
 </script>
 </body>
