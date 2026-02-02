@@ -6,285 +6,238 @@
     <title>PoupeRota Pro</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    
+
     <style>
-        :root { 
-            --primary: #00d1b2; --accent: #ff7f50; --bg: #f4f7f6; --card: #ffffff; 
-            --text: #2d3748; --border: #e2e8f0; --danger: #ff4757; --success: #2ecc71;
-            --focus: #ffcc00; /* Amarelo Seleção */
+        :root {
+            --primary: #00d1b2; --accent: #ff7f50; --bg: #f4f7f6;
+            --card: #ffffff; --text: #1a202c; --border: #e2e8f0;
         }
-        [data-theme="dark"] { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --border: #334155; }
-
-        body { margin: 0; font-family: 'Inter', sans-serif; height: 100vh; background: var(--bg); color: var(--text); overflow: hidden; }
-        #map { position: absolute; top: 0; bottom: 0; width: 100%; z-index: 1; }
-
-        /* Estilo dos Marcadores */
-        .custom-pin { 
-            background-color: var(--primary); border: 2px solid white; border-radius: 50% 50% 50% 0; 
-            transform: rotate(-45deg); width: 20px !important; height: 20px !important; transition: all 0.3s;
+        [data-theme="dark"] {
+            --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --border: #334155;
         }
-        .pin-status-done { background-color: var(--success) !important; }
-        .pin-status-failed { background-color: var(--danger) !important; }
+
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Inter', sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
+
+        .top-bar {
+            position: fixed; top: 0; left: 0; right: 0; height: 60px;
+            background: var(--card); display: flex; align-items: center;
+            justify-content: space-between; padding: 0 15px; z-index: 2000;
+            border-bottom: 1px solid var(--border);
+        }
+
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; z-index: 1; background: #e5e3df; }
+
+        .map-controls {
+            position: absolute; right: 15px; top: 75px; z-index: 1000;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .btn-float {
+            width: 45px; height: 45px; background: var(--card); border: 1px solid var(--border);
+            border-radius: 10px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 1.2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .drawer {
+            position: fixed; bottom: 0; left: 0; right: 0; height: 45vh;
+            background: var(--card); z-index: 1500; border-top: 1px solid var(--border);
+            border-radius: 20px 20px 0 0; display: flex; flex-direction: column;
+            box-shadow: 0 -5px 25px rgba(0,0,0,0.15); transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .drawer-handle { width: 40px; height: 5px; background: var(--border); margin: 10px auto; border-radius: 10px; cursor: pointer; }
         
-        /* Pino Selecionado (Amarelo) */
-        .pin-active { 
-            background-color: var(--focus) !important; 
-            outline: 4px solid #000; 
-            box-shadow: 0 0 15px var(--focus); 
-            z-index: 9999 !important; 
-            width: 25px !important; height: 25px !important;
+        #lista-entregas { flex-grow: 1; overflow-y: auto; padding: 0 15px; }
+
+        .entrega-card {
+            background: var(--bg); border-radius: 12px; padding: 15px; margin-bottom: 10px;
+            border: 2px solid transparent; cursor: pointer; transition: 0.2s;
+        }
+        .entrega-card.active { border-color: var(--primary); background: rgba(0,209,178,0.1); }
+        .entrega-card.done { opacity: 0.4; filter: grayscale(0.8); }
+
+        .drawer-footer { padding: 15px; border-top: 1px solid var(--border); background: var(--card); }
+        .btn-main {
+            width: 100%; padding: 14px; background: var(--primary); border: none;
+            border-radius: 10px; color: #fff; font-weight: 800; cursor: pointer;
         }
 
-        /* Bandeja e Cards */
-        #sheet {
-            position: absolute; bottom: 0; left: 0; right: 0; height: 80vh;
-            background: var(--card); z-index: 1000; border-radius: 24px 24px 0 0;
-            box-shadow: 0 -5px 25px rgba(0,0,0,0.2); transition: transform 0.4s ease;
-            display: flex; flex-direction: column; transform: translateY(calc(80vh - 130px));
+        /* PIN QUE BRILHA E PULSA */
+        .selected-marker {
+            filter: hue-rotate(150deg) brightness(1.5) drop-shadow(0 0 12px var(--accent)) !important;
+            animation: pulse-pin 0.6s infinite alternate;
+            z-index: 9999 !important;
         }
-        #sheet.expanded { transform: translateY(0); }
-        
-        #lista-entregas { flex-grow: 1; overflow-y: auto; padding: 15px; }
-        
-        .entrega-card { 
-            background: var(--bg); border-radius: 16px; padding: 15px; margin-bottom: 12px; 
-            border: 2px solid transparent; transition: all 0.2s ease;
+        @keyframes pulse-pin { from { transform: scale(1); } to { transform: scale(1.4); } }
+
+        @media (min-width: 768px) {
+            .drawer { width: 380px; height: calc(100vh - 60px); top: 60px; right: 0; left: auto; border-radius: 0; }
+            #map { width: calc(100% - 380px); }
         }
-
-        /* ESTADO SELECIONADO (AMARELO) */
-        .entrega-card.active { 
-            background-color: var(--focus) !important; 
-            border-color: #000;
-            transform: scale(1.02);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        .entrega-card.active div, .entrega-card.active small { color: #000 !important; font-weight: 800 !important; }
-
-        .entrega-card.done { opacity: 0.5; border-left: 8px solid var(--success); }
-        .entrega-card.failed { border-left: 8px solid var(--danger); }
-
-        /* Botões */
-        .side-controls { position: fixed; right: 15px; top: 15px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
-        .fab { width: 45px; height: 45px; background: var(--card); border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--text); }
-
-        .btn-nav { padding: 12px; border-radius: 10px; border: none; font-weight: 800; cursor: pointer; flex: 1; color: white; text-decoration: none; text-align: center; font-size: 0.8rem; display: block; }
-        .btn-check { background: var(--card); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; padding: 10px; color: var(--text); font-size: 0.75rem; font-weight: bold; }
-        
-        #menu-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 3000; display: none; align-items: center; justify-content: center; padding: 20px; }
-        .menu-card { background: var(--card); padding: 25px; border-radius: 20px; width: 100%; max-width: 380px; }
     </style>
 </head>
 <body data-theme="dark">
 
-<div id="map"></div>
-
-<div class="side-controls">
-    <button class="fab" onclick="toggleMenu()">⚙️</button>
-    <button class="fab" onclick="map.zoomIn()">➕</button>
-    <button class="fab" onclick="map.zoomOut()">➖</button>
-    <button class="fab" onclick="centralizarGps()">🎯</button>
-    <button class="fab" onclick="reotimizar(true)" style="color: var(--primary);">🔄</button>
-</div>
-
-<div id="sheet">
-    <div class="sheet-header" onclick="toggleSheet()">
-        <div style="width: 40px; height: 5px; background: #cbd5e0; border-radius: 10px; margin-bottom: 10px;"></div>
-        <div style="width:100%; display:flex; justify-content:space-between; padding:0 15px; box-sizing:border-box">
-            <h1 style="font-size: 0.9rem; margin:0">PoupeRota Pro</h1>
-            <div id="progress-text" style="font-weight:800; color:var(--primary); font-size:0.8rem">0 / 0</div>
+    <div class="top-bar">
+        <div style="display:flex; align-items:center; gap:10px">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00d1b2" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+            <h2 style="font-size: 1rem; margin:0; letter-spacing: -0.5px">PoupeRota <span style="color:var(--accent)">PRO</span></h2>
+        </div>
+        <div style="display:flex; gap:15px">
+            <span onclick="toggleTheme()" id="theme-btn" style="cursor:pointer; font-size:1.4rem">☀️</span>
+            <span onclick="location.reload()" style="cursor:pointer; font-size:1.4rem">⚙️</span>
         </div>
     </div>
 
-    <div style="padding: 5px 15px 10px 15px;">
-        <input type="text" id="input-busca" placeholder="🔍 Buscar por rua ou bairro..." style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--bg); color:var(--text); outline:none">
+    <div id="map"></div>
+
+    <div class="map-controls">
+        <div class="btn-float" onclick="centralizarVisao()">🎯</div>
     </div>
 
-    <div id="upload-section" style="padding: 20px; text-align:center;">
-        <input type="file" id="file-input" style="display:none" accept=".csv, .xlsx, .xls">
-        <button onclick="document.getElementById('file-input').click()" style="width:100%; padding:15px; background:var(--primary); border:none; border-radius:12px; font-weight:800; cursor:pointer">📦 IMPORTAR PLANILHA</button>
-    </div>
-    
-    <div id="lista-entregas"></div>
-</div>
+    <div class="drawer" id="drawer">
+        <div class="drawer-handle" onclick="expandDrawer()"></div>
+        
+        <div id="upload-box" style="padding: 20px; text-align: center;">
+            <button onclick="document.getElementById('file-input').click()" class="btn-main" style="background:none; border:2px dashed var(--primary); color:var(--primary)">📂 IMPORTAR PLANILHA</button>
+            <input type="file" id="file-input" style="display:none" accept=".xlsx, .xls, .csv">
+        </div>
 
-<div id="menu-overlay" onclick="toggleMenu()">
-    <div class="menu-card" onclick="event.stopPropagation()">
-        <h3 style="margin-top:0">Ajustes de Mapa</h3>
-        <button onclick="setMapLayer('vetor')" style="width:100%; padding:12px; margin-bottom:10px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); cursor:pointer">🗺️ Modo Normal</button>
-        <button onclick="setMapLayer('satelite')" style="width:100%; padding:12px; margin-bottom:10px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); cursor:pointer">🛰️ Modo Satélite</button>
-        <button onclick="toggleTheme()" style="width:100%; padding:12px; margin-bottom:10px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); cursor:pointer">🌓 Trocar Tema (Claro/Escuro)</button>
-        <button onclick="limparDados()" style="width:100%; padding:12px; border-radius:10px; border:none; background:var(--danger); color:white; font-weight:bold; cursor:pointer">🗑️ Limpar Rota Atual</button>
-        <button onclick="toggleMenu()" style="width:100%; margin-top:20px; background:none; border:none; color:var(--primary); font-weight:bold; cursor:pointer">Fechar</button>
-    </div>
-</div>
+        <div id="lista-entregas"></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <div class="drawer-footer" id="footer-actions" style="display:none">
+            <button class="btn-main" onclick="reotimizarRota(true)">🔄 RECALCULAR PELA MINHA POSIÇÃO</button>
+        </div>
+    </div>
+
 <script>
-    const map = L.map('map', { zoomControl: false, tap: false }).setView([-16.68, -49.25], 13);
-    let currentLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-    let layerGroup = L.featureGroup().addTo(map);
-    let dados = [], marcadores = {}, minhaPos = null;
+    const map = L.map('map', { zoomControl: false }).setView([-16.68, -49.25], 13);
+    
+    // URLs de Tiles Corrigidas
+    const urlDark = 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png';
+    const urlLight = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'; // Mapa Claro Padrão
 
-    function toggleSheet() { document.getElementById('sheet').classList.toggle('expanded'); }
-    function toggleMenu() { const m = document.getElementById('menu-overlay'); m.style.display = (m.style.display === 'flex') ? 'none' : 'flex'; }
+    let currentTiles = L.tileLayer(urlDark).addTo(map);
+    let markersLayer = L.layerGroup().addTo(map);
+    let routeData = [], markerMap = {}, myLocation = null;
 
-    function setMapLayer(type) {
-        map.removeLayer(currentLayer);
-        if(type === 'satelite') {
-            currentLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}').addTo(map);
-        } else {
-            currentLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
-        }
-        toggleMenu();
+    navigator.geolocation.watchPosition(p => {
+        myLocation = { lat: p.coords.latitude, lon: p.coords.longitude };
+    }, null, { enableHighAccuracy: true });
+
+    function toggleTheme() {
+        const body = document.body;
+        const isDark = body.getAttribute('data-theme') === 'dark';
+        const newTheme = isDark ? 'light' : 'dark';
+        
+        body.setAttribute('data-theme', newTheme);
+        document.getElementById('theme-btn').innerText = newTheme === 'dark' ? '☀️' : '🌙';
+        
+        // Troca o mapa na hora
+        map.removeLayer(currentTiles);
+        currentTiles = L.tileLayer(newTheme === 'dark' ? urlDark : urlLight).addTo(map);
     }
 
-    window.onload = () => {
-        const salvos = localStorage.getItem('poupe_rota_dados');
-        if (salvos) {
-            dados = JSON.parse(salvos);
-            document.getElementById('upload-section').style.display = 'none';
-            renderizar();
-        }
-    };
-
-    navigator.geolocation.watchPosition(p => { minhaPos = { lat: p.coords.latitude, lon: p.coords.longitude }; }, null, { enableHighAccuracy: true });
-
-    function centralizarGps() { if(minhaPos) map.flyTo([minhaPos.lat, minhaPos.lon], 16); }
+    function expandDrawer() {
+        const d = document.getElementById('drawer');
+        d.style.height = (d.style.height === '85vh') ? '45vh' : '85vh';
+    }
 
     document.getElementById('file-input').onchange = function(e) {
-        const file = e.target.files[0];
         const reader = new FileReader();
         reader.onload = function(evt) {
             const wb = XLSX.read(evt.target.result, {type: 'binary'});
-            const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-            dados = json.map((r, i) => {
-                const lat = parseFloat(r.Latitude || r.lat || r["Destination Latitude"]);
-                const lon = parseFloat(r.Longitude || r.lon || r["Destination Longitude"]);
-                if(isNaN(lat)) return null;
-                return {
-                    id: String(r["SPX TN"] || r.Pacote || i),
-                    lat, lon,
-                    addr: r["Destination Address"] || r.Endereco || "Endereço",
-                    bairro: r.Bairro || r.District || "---",
-                    status: 'pendente'
-                };
-            }).filter(d => d !== null);
-            document.getElementById('upload-section').style.display = 'none';
-            reotimizar(true);
+            const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+            routeData = data.map((r, i) => ({
+                id: i, 
+                lat: parseFloat(r.Latitude || r.lat || r.LATITUDE), 
+                lon: parseFloat(r.Longitude || r.lon || r.LONGITUDE),
+                addr: r.Endereco || r.address || "Rua s/n",
+                bairro: r.Bairro || "Entrega", 
+                done: false
+            })).filter(p => !isNaN(p.lat));
+            
+            document.getElementById('upload-box').style.display = 'none';
+            document.getElementById('footer-actions').style.display = 'block';
+            reotimizarRota(true);
         };
-        reader.readAsBinaryString(file);
+        reader.readAsBinaryString(e.target.files[0]);
     };
 
-    function reotimizar(usarGps) {
-        let pendentes = dados.filter(d => d.status === 'pendente');
-        let outros = dados.filter(d => d.status !== 'pendente');
-        let rota = [];
-        let atual = (usarGps && minhaPos) ? minhaPos : (pendentes.length > 0 ? {lat: pendentes[0].lat, lon: pendentes[0].lon} : null);
+    function reotimizarRota(useGps) {
+        let pends = routeData.filter(d => !d.done);
+        let sorted = [];
+        let start = (useGps && myLocation) ? myLocation : (pends[0] || null);
 
-        while(pendentes.length > 0 && atual) {
-            pendentes.sort((a,b) => Math.hypot(a.lat - atual.lat, a.lon - atual.lon) - Math.hypot(b.lat - atual.lat, b.lon - atual.lon));
-            atual = pendentes.shift();
-            rota.push(atual);
+        while(pends.length > 0 && start) {
+            pends.sort((a,b) => Math.hypot(a.lat - start.lat, a.lon - start.lon) - Math.hypot(b.lat - start.lat, b.lon - start.lon));
+            start = pends.shift();
+            sorted.push(start);
         }
-        dados = [...rota, ...outros];
-        localStorage.setItem('poupe_rota_dados', JSON.stringify(dados));
-        renderizar();
+        renderList(sorted, routeData.filter(d => d.done));
     }
 
-    function renderizar() {
-        layerGroup.clearLayers();
-        const lista = document.getElementById('lista-entregas');
-        lista.innerHTML = '';
-        marcadores = {};
-        
-        const concluidos = dados.filter(d => d.status === 'done').length;
-        document.getElementById('progress-text').innerText = `${concluidos} / ${dados.length}`;
+    function renderList(pends, dones) {
+        markersLayer.clearLayers();
+        const container = document.getElementById('lista-entregas');
+        container.innerHTML = '';
+        const all = [...pends, ...dones];
 
-        dados.forEach((p, i) => {
-            let statusClass = p.status === 'done' ? 'pin-status-done' : (p.status === 'failed' ? 'pin-status-failed' : '');
-            
-            const m = L.marker([p.lat, p.lon], { 
-                icon: L.divIcon({ className: `custom-pin ${statusClass}`, iconSize: [20,20], iconAnchor: [10, 20] }) 
-            }).addTo(layerGroup);
-            marcadores[p.id] = m;
+        all.forEach((p, i) => {
+            const m = L.marker([p.lat, p.lon]).addTo(markersLayer);
+            markerMap[p.id] = m;
 
             const card = document.createElement('div');
             card.id = `card-${p.id}`;
-            card.className = `entrega-card ${p.status === 'done' ? 'done' : ''} ${p.status === 'failed' ? 'failed' : ''}`;
-            card.onclick = () => focar(p.id);
+            card.className = `entrega-card ${p.done ? 'done' : ''}`;
+            card.onclick = () => focarLocal(p.id);
             card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; margin-bottom:8px">
-                    <small style="color:var(--accent); font-weight:800; font-size:0.7rem">${p.bairro}</small>
-                    <small style="opacity:0.6; font-size:0.6rem">#${i+1}</small>
+                <div style="display:flex; justify-content:space-between; align-items:center">
+                    <small style="color:var(--accent); font-weight:800; text-transform:uppercase">${p.bairro}</small>
+                    ${!p.done ? `<b style="color:var(--primary); font-size:1.1rem">#${i+1}</b>` : '✅'}
                 </div>
-                <div style="font-weight:700; font-size:1rem; margin-bottom:12px; color:var(--text)">${p.addr}</div>
-                
-                <div style="display:flex; gap:8px; margin-bottom:12px">
-                    <a class="btn-nav" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}" target="_blank" style="background:#4285F4">GOOGLE MAPS</a>
-                    <a class="btn-nav" href="waze://?ll=${p.lat},${p.lon}&navigate=yes" style="background:#33CCFF">WAZE</a>
-                </div>
-
-                <div style="display:flex; gap:5px">
-                    <button class="btn-check" onclick="event.stopPropagation(); mudarStatus('${p.id}', 'done')" style="flex:1; border-color:var(--success)">✅ Entregue</button>
-                    <button class="btn-check" onclick="event.stopPropagation(); mudarStatus('${p.id}', 'failed')" style="flex:1; border-color:var(--danger)">❌ Falhou</button>
-                    <button class="btn-check" onclick="event.stopPropagation(); mudarStatus('${p.id}', 'pendente')">↩️</button>
+                <div style="font-weight:600; margin:5px 0; font-size:0.9rem">${p.addr}</div>
+                <div style="display:flex; gap:10px; margin-top:10px">
+                    <button onclick="event.stopPropagation(); window.open('https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}')" style="flex:1; background:var(--primary); border:none; padding:10px; border-radius:8px; color:white; font-weight:bold; cursor:pointer">MAPS</button>
+                    <button onclick="event.stopPropagation(); toggleStatus(${p.id})" style="flex:1; background:none; border:1px solid var(--border); color:var(--text); border-radius:8px; cursor:pointer">${p.done ? '↩️' : 'CONCLUIR'}</button>
                 </div>
             `;
-            lista.appendChild(card);
+            container.appendChild(card);
         });
-        if(dados.length > 0) map.fitBounds(layerGroup.getBounds(), {padding: [50, 50]});
+        centralizarVisao();
     }
 
-    function focar(id) {
-        const p = dados.find(x => x.id == id);
-        if(!p) return;
+    function focarLocal(id) {
+        const p = routeData.find(x => x.id === id);
         map.flyTo([p.lat, p.lon], 16);
         
-        // Destaque Amarelo no Card
         document.querySelectorAll('.entrega-card').forEach(c => c.classList.remove('active'));
-        const el = document.getElementById(`card-${id}`);
-        if(el) {
-            el.classList.add('active');
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+        document.getElementById(`card-${id}`).classList.add('active');
 
-        // Destaque Amarelo no Pino
-        Object.values(marcadores).forEach(m => {
-            const icon = m.getElement();
-            if(icon) icon.classList.remove('pin-active');
+        Object.values(markerMap).forEach(m => {
+            const el = m.getElement();
+            if(el) el.classList.remove('selected-marker');
         });
-        if(marcadores[id] && marcadores[id].getElement()) {
-            marcadores[id].getElement().classList.add('pin-active');
-        }
         
-        document.getElementById('sheet').classList.remove('expanded');
+        const el = markerMap[id].getElement();
+        if(el) el.classList.add('selected-marker');
+        
+        // Fecha um pouco a gaveta no mobile para ver o mapa
+        if(window.innerWidth < 768) document.getElementById('drawer').style.height = '45vh';
     }
 
-    function mudarStatus(id, status) {
-        const p = dados.find(x => x.id == id);
-        if(p) {
-            p.status = status;
-            localStorage.setItem('poupe_rota_dados', JSON.stringify(dados));
-            renderizar();
+    function centralizarVisao() {
+        if (markersLayer.getLayers().length > 0) {
+            map.fitBounds(markersLayer.getBounds(), {padding: [50, 50]});
         }
     }
 
-    function toggleTheme() {
-        const b = document.body;
-        const isDark = b.getAttribute('data-theme') === 'dark';
-        b.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    function toggleStatus(id) {
+        const p = routeData.find(x => x.id === id);
+        p.done = !p.done;
+        reotimizarRota(false);
     }
-
-    function limparDados() { if(confirm("Deseja realmente apagar a rota atual?")) { localStorage.clear(); location.reload(); } }
-
-    document.getElementById('input-busca').addEventListener('input', (e) => {
-        const t = e.target.value.toLowerCase();
-        document.querySelectorAll('.entrega-card').forEach(c => {
-            c.style.display = c.innerText.toLowerCase().includes(t) ? "block" : "none";
-        });
-    });
 </script>
 </body>
 </html>
