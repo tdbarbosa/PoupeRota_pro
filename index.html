@@ -16,7 +16,6 @@
         body { margin: 0; font-family: 'Inter', sans-serif; height: 100vh; background: var(--bg); color: var(--text); overflow: hidden; }
         #map { position: absolute; top: 0; bottom: 0; width: 100%; z-index: 1; }
 
-        /* Bandeja */
         #sheet {
             position: absolute; bottom: 0; left: 0; right: 0; height: 80vh;
             background: var(--card); z-index: 1000; border-radius: 24px 24px 0 0;
@@ -27,21 +26,18 @@
         .sheet-header { padding: 12px; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
         .handle { width: 40px; height: 5px; background: #cbd5e0; border-radius: 10px; margin-bottom: 10px; }
 
-        /* Cards */
         #lista-entregas { flex-grow: 1; overflow-y: auto; padding: 15px; }
         .entrega-card { background: var(--bg); border-radius: 16px; padding: 15px; margin-bottom: 12px; border: 2px solid transparent; }
         .entrega-card.active { border-color: var(--primary); background: var(--card); }
         .entrega-card.done { opacity: 0.5; border-color: #2ecc71; }
         .entrega-card.failed { border-color: var(--danger); background: rgba(255, 71, 87, 0.1); }
 
-        /* Controles */
         .side-controls { position: fixed; right: 15px; top: 15px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
         .fab { width: 45px; height: 45px; background: var(--card); border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--text); font-weight: bold; }
 
-        .btn-nav { padding: 10px; border-radius: 8px; border: none; font-weight: 800; cursor: pointer; font-size: 0.75rem; flex: 1; }
-        .btn-check { background: none; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; padding: 8px; color: var(--text); }
+        .btn-nav { padding: 12px; border-radius: 10px; border: none; font-weight: 800; cursor: pointer; flex: 1; color: white; }
+        .btn-check { background: var(--card); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; padding: 8px; color: var(--text); font-size: 0.7rem; }
 
-        /* Pins */
         .custom-pin { background: var(--primary); border: 2px solid white; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); }
         .pin-failed { background: var(--danger) !important; }
         .pin-active { outline: 3px solid var(--primary); width: 24px !important; height: 24px !important; }
@@ -86,16 +82,13 @@
 <div id="menu-overlay" onclick="toggleMenu()">
     <div class="menu-card" onclick="event.stopPropagation()">
         <h3 style="margin-top:0">Configurações</h3>
-        
-        <p style="font-size:0.8rem; font-weight:bold; margin-bottom:5px">TIPO DE MAPA</p>
+        <p style="font-size:0.8rem; font-weight:bold; margin-bottom:5px">ESTILO DO MAPA</p>
         <div style="display:flex; gap:10px; margin-bottom:20px">
             <button onclick="setMapLayer('vetor')" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); cursor:pointer">Normal</button>
             <button onclick="setMapLayer('satelite')" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); cursor:pointer">Satélite</button>
         </div>
-
         <button onclick="toggleTheme()" style="width:100%; padding:12px; margin-bottom:10px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); cursor:pointer">🌓 Alternar Cores</button>
         <button onclick="limparDados()" style="width:100%; padding:12px; border-radius:10px; border:none; background:var(--danger); color:white; font-weight:bold; cursor:pointer">🗑️ Limpar Rota</button>
-        
         <button onclick="toggleMenu()" style="width:100%; margin-top:20px; background:none; border:none; color:var(--primary); font-weight:bold; cursor:pointer">Fechar</button>
     </div>
 </div>
@@ -104,7 +97,10 @@
 <script>
     const map = L.map('map', { zoomControl: false, tap: false }).setView([-16.68, -49.25], 13);
     let currentLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-    let layerGroup = L.layerGroup().addTo(map);
+    
+    // CORREÇÃO AQUI: Usando FeatureGroup em vez de LayerGroup
+    let layerGroup = L.featureGroup().addTo(map);
+    
     let dados = [], marcadores = {}, minhaPos = null;
 
     function toggleSheet() { document.getElementById('sheet').classList.toggle('expanded'); }
@@ -147,7 +143,7 @@
                     lat, lon,
                     addr: r["Destination Address"] || r.Endereco || "Endereço",
                     bairro: r.Bairro || r.District || "---",
-                    status: 'pendente' // pendente, done, failed
+                    status: 'pendente'
                 };
             }).filter(d => d !== null);
             document.getElementById('upload-section').style.display = 'none';
@@ -198,44 +194,53 @@
                 <div style="font-weight:600; font-size:0.9rem; margin-bottom:12px">${p.addr}</div>
                 
                 <div style="display:flex; gap:5px; margin-bottom:10px">
-                    <button class="btn-nav" onclick="event.stopPropagation(); window.open('google.navigation:q=${p.lat},${p.lon}')" style="background:#4285F4; color:white">MAPS</button>
-                    <button class="btn-nav" onclick="event.stopPropagation(); window.open('waze://?ll=${p.lat},${p.lon}&navigate=yes')" style="background:#33CCFF; color:white">WAZE</button>
+                    <button class="btn-nav" onclick="event.stopPropagation(); window.open('https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}')" style="background:#4285F4">MAPS</button>
+                    <button class="btn-nav" onclick="event.stopPropagation(); window.open('waze://?ll=${p.lat},${p.lon}&navigate=yes')" style="background:#33CCFF">WAZE</button>
                 </div>
 
                 <div style="display:flex; gap:5px">
-                    <button class="btn-check" onclick="event.stopPropagation(); mudarStatus('${p.id}', 'done')" style="flex:1">✅ Entregue</button>
-                    <button class="btn-check" onclick="event.stopPropagation(); mudarStatus('${p.id}', 'failed')" style="flex:1">❌ Não Entregue</button>
+                    <button class="btn-check" onclick="event.stopPropagation(); mudarStatus('${p.id}', 'done')" style="flex:1">✅ Sim</button>
+                    <button class="btn-check" onclick="event.stopPropagation(); mudarStatus('${p.id}', 'failed')" style="flex:1">❌ Não</button>
                     <button class="btn-check" onclick="event.stopPropagation(); mudarStatus('${p.id}', 'pendente')">↩️</button>
                 </div>
             `;
             lista.appendChild(card);
         });
-        if(dados.length > 0) map.fitBounds(layerGroup.getBounds(), {padding: [50, 50]});
+        
+        // CORREÇÃO AQUI: getBounds agora funciona porque layerGroup é FeatureGroup
+        if(dados.length > 0 && layerGroup.getLayers().length > 0) {
+            map.fitBounds(layerGroup.getBounds(), {padding: [50, 50]});
+        }
     }
 
     function focar(id) {
         const p = dados.find(x => x.id == id);
+        if(!p) return;
         map.flyTo([p.lat, p.lon], 16);
         document.querySelectorAll('.entrega-card').forEach(c => c.classList.remove('active'));
-        document.getElementById(`card-${id}`).classList.add('active');
-        document.getElementById(`card-${id}`).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const el = document.getElementById(`card-${id}`);
+        if(el) {
+            el.classList.add('active');
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
         Object.values(marcadores).forEach(m => m.getElement()?.classList.remove('pin-active'));
-        marcadores[id].getElement()?.classList.add('pin-active');
+        if(marcadores[id]) marcadores[id].getElement()?.classList.add('pin-active');
         document.getElementById('sheet').classList.remove('expanded');
     }
 
     function mudarStatus(id, status) {
         const p = dados.find(x => x.id == id);
-        p.status = status;
-        localStorage.setItem('poupe_rota_dados', JSON.stringify(dados));
-        renderizar();
+        if(p) {
+            p.status = status;
+            localStorage.setItem('poupe_rota_dados', JSON.stringify(dados));
+            renderizar();
+        }
     }
 
     function toggleTheme() {
         const b = document.body;
         const isDark = b.getAttribute('data-theme') === 'dark';
         b.setAttribute('data-theme', isDark ? 'light' : 'dark');
-        setMapLayer(isDark ? 'vetor' : 'normal'); // Força reload dos tiles
     }
 
     function limparDados() { if(confirm("Limpar rota?")) { localStorage.clear(); location.reload(); } }
