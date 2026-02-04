@@ -3,250 +3,247 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PoupeRota Pro - Oficial</title>
-    
+    <title>PoupeRota Pro</title>
+
+    <!-- Bibliotecas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
     <style>
-        :root {
-            --primary: #00d1b2; --accent: #ff7f50; --bg: #f4f7f6;
-            --card: #ffffff; --text: #1a202c; --border: #e2e8f0; --done: #2ecc71;
-        }
-        [data-theme="dark"] {
-            --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --border: #334155;
-        }
-
-        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Inter', sans-serif; overflow: hidden; background: var(--bg); color: var(--text); }
-
-        .top-bar {
-            position: fixed; top: 0; left: 0; right: 0; height: 70px;
-            background: var(--card); display: flex; align-items: center;
-            justify-content: space-between; padding: 0 15px; z-index: 2000;
-            border-bottom: 1px solid var(--border);
-        }
-
-        #map { position: absolute; top: 0; bottom: 0; width: 100%; z-index: 1; background: #e5e3df; }
-
-        /* Gaveta / Bandeja */
-        .drawer {
-            position: fixed; bottom: 0; left: 0; right: 0; height: 45vh;
-            background: var(--card); z-index: 1500; border-top: 1px solid var(--border);
-            border-radius: 24px 24px 0 0; display: flex; flex-direction: column;
-            box-shadow: 0 -8px 30px rgba(0,0,0,0.15); transition: height 0.4s ease;
-        }
-        .drawer.expanded { height: 85vh; }
-        .drawer-handle { width: 45px; height: 5px; background: var(--border); margin: 12px auto; border-radius: 10px; cursor: pointer; padding: 5px 0; background-clip: content-box; }
+        :root { --primary: #00d1b2; --accent: #ff7f50; --bg: #f4f7f6; --card: #ffffff; --text: #2d3748; --border: #e2e8f0; }
+        [data-theme="dark"] { --bg: #101820; --card: #1a232e; --text: #ffffff; --border: #2d3748; }
         
-        #lista-entregas { flex-grow: 1; overflow-y: auto; padding: 0 15px 80px 15px; }
+        body { margin: 0; display: flex; height: 100vh; background: var(--bg); color: var(--text); overflow: hidden; font-family: 'Inter', sans-serif; }
+        #sidebar { width: 380px; background: var(--card); display: flex; flex-direction: column; z-index: 1000; border-right: 1px solid var(--border); transition: 0.3s; flex-shrink: 0; }
+        .header { padding: 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+        #lista-entregas { flex-grow: 1; overflow-y: auto; padding: 15px; }
+        
+        .entrega-card { background: var(--bg); border-radius: 12px; padding: 15px; margin-bottom: 12px; border: 2px solid transparent; cursor: pointer; transition: 0.2s; }
+        .entrega-card.active { border-color: var(--primary); background: rgba(0, 209, 178, 0.05); }
+        .entrega-card.done { opacity: 0.3; filter: grayscale(1); }
 
-        /* Cards */
-        .entrega-card {
-            background: var(--bg); border-radius: 16px; padding: 18px; margin-bottom: 12px;
-            border: 2px solid transparent; cursor: pointer; transition: 0.2s;
-        }
-        .entrega-card.active { border-color: var(--primary); background: rgba(0,209,178,0.05); }
-        .entrega-card.is-done { border-left: 6px solid var(--done); opacity: 0.8; background: #f0fff4; }
-        [data-theme="dark"] .entrega-card.is-done { background: #064e3b33; }
-
-        .drawer-footer { position: absolute; bottom: 0; left: 0; right: 0; padding: 15px; background: var(--card); border-top: 1px solid var(--border); }
-        .btn-main { width: 100%; padding: 15px; background: var(--primary); border: none; border-radius: 12px; color: #fff; font-weight: 800; cursor: pointer; }
-
-        /* Modal Config */
-        #modal-config {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: var(--card); padding: 25px; border-radius: 20px; z-index: 3000;
-            display: none; box-shadow: 0 0 50px rgba(0,0,0,0.3); width: 80%; max-width: 300px;
-        }
-
-        /* Marcador Pulsante */
-        .selected-marker {
-            filter: hue-rotate(150deg) brightness(1.2) drop-shadow(0 0 10px var(--accent)) !important;
-            animation: pulse-pin 0.6s infinite alternate !important;
+        .custom-pin { background-color: var(--primary); border: 2px solid white; border-radius: 50%; width: 14px; height: 14px; box-shadow: 0 0 5px rgba(0,0,0,0.3); }
+        .pin-active { 
+            background-color: var(--accent) !important; 
+            width: 20px !important; height: 20px !important; 
+            box-shadow: 0 0 20px var(--accent);
+            animation: pulse 0.6s infinite alternate; 
             z-index: 9999 !important;
         }
-        @keyframes pulse-pin { from { transform: scale(1); } to { transform: scale(1.4); } }
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.4); } }
 
-        @media (min-width: 768px) {
-            .drawer { width: 400px; height: calc(100vh - 70px); top: 70px; right: 0; left: auto; border-radius: 0; }
-            #map { width: calc(100% - 400px); }
+        #map { flex-grow: 1; height: 100vh; background: #0b0e14; }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            #sidebar { width: 100%; height: 45vh; position: fixed; bottom: 0; border-radius: 20px 20px 0 0; }
+            #map { height: 55vh; width: 100%; }
         }
     </style>
 </head>
-<body data-theme="light">
+<body data-theme="dark">
 
-    <div class="top-bar">
-        <div>
-            <div style="display:flex; align-items:center; gap:8px">
-                <h2 style="font-size: 1.1rem; margin:0">PoupeRota <span style="color:var(--accent)">PRO</span></h2>
-            </div>
-            <div id="progresso-txt" style="font-size: 0.75rem; font-weight: 700; color: var(--primary); margin-top: 2px">Aguardando planilha...</div>
+<div id="sidebar">
+    <div class="header">
+        <div style="display:flex; align-items:center; gap:10px">
+            <img src="logo.png" style="width:30px" onerror="this.src='https://cdn-icons-png.flaticon.com/512/854/854878.png'">
+            <h1 style="font-size: 1rem; margin:0">PoupeRota <span style="color:var(--accent)">Pro</span></h1>
         </div>
-        <div style="display:flex; gap:18px; align-items:center">
-            <span onclick="toggleTheme()" id="theme-btn" style="cursor:pointer; font-size:1.3rem">🌙</span>
-            <span onclick="document.getElementById('modal-config').style.display='block'" style="cursor:pointer; font-size:1.3rem">⚙️</span>
-        </div>
+        <button onclick="toggleTheme()" style="background:none; border:none; cursor:pointer; font-size:1.2rem">☀️</button>
     </div>
 
-    <div id="map"></div>
-
-    <div id="modal-config">
-        <h3 style="margin-top:0">Configurações</h3>
-        <label>Aplicativo de GPS:</label>
-        <select id="gps-pref" style="width:100%; padding:10px; margin:10px 0; border-radius:8px">
-            <option value="google">Google Maps</option>
-            <option value="waze">Waze</option>
-        </select>
-        <button onclick="this.parentElement.style.display='none'" class="btn-main">Salvar</button>
+    <div id="upload-section" style="padding: 20px;">
+        <input type="file" id="file-input" style="display:none" accept=".csv, .xlsx, .xls">
+        <button onclick="document.getElementById('file-input').click()" style="width:100%; padding:15px; border:2px dashed var(--primary); color:var(--primary); background:none; border-radius:10px; font-weight:bold; cursor:pointer; font-size: 0.9rem;">📂 SELECIONAR PLANILHA</button>
     </div>
-
-    <div class="drawer" id="drawer">
-        <div class="drawer-handle" onclick="toggleDrawer()"></div>
-        
-        <div id="upload-box" style="padding: 40px 20px; text-align: center;">
-            <p style="font-size:0.9rem; margin-bottom:20px">Suba sua lista de entregas para começar.</p>
-            <button onclick="document.getElementById('file-input').click()" class="btn-main" style="background:none; border:2px dashed var(--primary); color:var(--primary)">📂 IMPORTAR EXCEL</button>
-            <input type="file" id="file-input" style="display:none" accept=".xlsx, .xls, .csv">
-        </div>
-
-        <div id="lista-entregas"></div>
-
-        <div class="drawer-footer" id="footer-actions" style="display:none">
-            <button class="btn-main" onclick="reotimizarRota(true)">🔄 RECALCULAR PELA MINHA POSIÇÃO</button>
-        </div>
+    
+    <div id="lista-entregas"></div>
+    
+    <div id="footer-ui" style="padding: 15px; display:none">
+        <button onclick="reotimizar(true)" style="width:100%; background:var(--primary); border:none; padding:15px; border-radius:10px; font-weight:800; cursor:pointer; color:#101820">🔄 RECALCULAR DA MINHA POSIÇÃO</button>
     </div>
+</div>
 
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     const map = L.map('map', { zoomControl: false }).setView([-16.68, -49.25], 13);
-    const urlLight = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-    const urlDark = 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png';
+    let tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+    let layerMarkers = L.layerGroup().addTo(map);
+    let dados = [], marcadores = {}, minhaPos = null;
 
-    let currentTiles = L.tileLayer(urlLight).addTo(map);
-    let markersLayer = L.layerGroup().addTo(map);
-    let routeData = [], markerMap = {}, myLocation = null;
-
-    // GPS em tempo real
-    navigator.geolocation.watchPosition(p => {
-        myLocation = { lat: p.coords.latitude, lon: p.coords.longitude };
-    }, null, { enableHighAccuracy: true });
+    // GPS (opcional)
+    navigator.geolocation.getCurrentPosition(
+        p => minhaPos = { lat: p.coords.latitude, lon: p.coords.longitude },
+        e => console.log("GPS desativado ou sem HTTPS. Usando modo manual.")
+    );
 
     function toggleTheme() {
-        const isLight = document.body.getAttribute('data-theme') === 'light';
-        const newTheme = isLight ? 'dark' : 'light';
-        document.body.setAttribute('data-theme', newTheme);
-        document.getElementById('theme-btn').innerText = newTheme === 'light' ? '🌙' : '☀️';
-        map.removeLayer(currentTiles);
-        currentTiles = L.tileLayer(newTheme === 'light' ? urlLight : urlDark).addTo(map);
+        const isDark = document.body.getAttribute('data-theme') === 'dark';
+        document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+        tiles.setUrl(isDark 
+            ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+            : 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png'
+        );
     }
 
-    function toggleDrawer() {
-        document.getElementById('drawer').classList.toggle('expanded');
-    }
+    // Leitura de CSV + Excel
+    document.getElementById('file-input').onchange = function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
 
-    document.getElementById('file-input').onchange = function(e) {
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-            const wb = XLSX.read(evt.target.result, {type: 'binary'});
-            const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-            
-            routeData = data.map((r, i) => ({
-                id: i, 
-                lat: parseFloat(r.Latitude || r.lat || r.LATITUDE || r.Lat), 
-                lon: parseFloat(r.Longitude || r.lon || r.LONGITUDE || r.Long),
-                addr: r.Endereco || r.ENDERECO || r.Address || r.Rua || "Endereço não identificado",
-                bairro: r.Bairro || r.BAIRRO || "Destino", 
-                done: false
-            })).filter(p => !isNaN(p.lat));
-            
-            document.getElementById('upload-box').style.display = 'none';
-            document.getElementById('footer-actions').style.display = 'block';
-            reotimizarRota(true);
-        };
-        reader.readAsBinaryString(e.target.files[0]);
+        const ext = file.name.split('.').pop().toLowerCase();
+
+        if (ext === 'csv') {
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: res => processarDados(res.data)
+            });
+        } else {
+            const reader = new FileReader();
+            reader.onload = function (evt) {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const wb = XLSX.read(data, { type: 'array' });
+                    const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                    processarDados(json);
+                } catch (err) {
+                    alert("Erro ao ler arquivo. Use Excel ou CSV.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
     };
 
-    function reotimizarRota(useGps) {
-        let pends = routeData.filter(d => !d.done);
-        let sorted = [];
-        let start = (useGps && myLocation) ? myLocation : (pends[0] || null);
+    function processarDados(json) {
+        dados = json.map((r, i) => ({
+            id: i,
+            lat: parseFloat(r.Latitude || r.lat || r.LATITUDE || r.Lat),
+            lon: parseFloat(r.Longitude || r.lon || r.LONGITUDE || r.Long),
+            addr: r.Endereco || r.address || r.ENDERECO || "Endereço não informado",
+            bairro: r.Bairro || r.BAIRRO || "",
+            done: false
+        })).filter(p => !isNaN(p.lat) && !isNaN(p.lon));
 
-        while(pends.length > 0 && start) {
-            pends.sort((a,b) => Math.hypot(a.lat - start.lat, a.lon - start.lon) - Math.hypot(b.lat - start.lat, b.lon - start.lon));
-            start = pends.shift();
-            sorted.push(start);
+        if (dados.length === 0) {
+            alert("Nenhum dado de Latitude/Longitude encontrado!");
+            return;
         }
-        renderList(sorted, routeData.filter(d => d.done));
-        atualizarProgresso();
+
+        salvarLocal();
+
+        document.getElementById('upload-section').style.display = 'none';
+        document.getElementById('footer-ui').style.display = 'block';
+        reotimizar(true);
     }
 
-    function renderList(pends, dones) {
-        markersLayer.clearLayers();
-        const container = document.getElementById('lista-entregas');
-        container.innerHTML = '';
-        const all = [...pends, ...dones];
+    function reotimizar(pelaMinhaPos) {
+        let pendentes = dados.filter(d => !d.done);
+        let concluidos = dados.filter(d => d.done);
+        let rota = [];
 
-        all.forEach((p, i) => {
-            const m = L.marker([p.lat, p.lon]).addTo(markersLayer);
-            markerMap[p.id] = m;
+        let atual = (pelaMinhaPos && minhaPos)
+            ? minhaPos
+            : (pendentes.length > 0 ? { lat: pendentes[0].lat, lon: pendentes[0].lon } : null);
+
+        if (atual) {
+            while (pendentes.length > 0) {
+                pendentes.sort((a, b) =>
+                    Math.hypot(a.lat - atual.lat, a.lon - atual.lon) -
+                    Math.hypot(b.lat - atual.lat, b.lon - atual.lon)
+                );
+                atual = pendentes.shift();
+                rota.push(atual);
+            }
+        }
+        desenhar(rota, concluidos);
+    }
+
+    function desenhar(pendentes, concluidos) {
+        layerMarkers.clearLayers();
+        const lista = document.getElementById('lista-entregas');
+        lista.innerHTML = '';
+        marcadores = {};
+
+        const total = [...pendentes, ...concluidos];
+        total.forEach((p, i) => {
+            const icon = L.divIcon({ className: 'custom-pin', iconSize: [14, 14] });
+            const m = L.marker([p.lat, p.lon], { icon }).addTo(layerMarkers);
+            marcadores[p.id] = m;
 
             const card = document.createElement('div');
             card.id = `card-${p.id}`;
-            card.className = `entrega-card ${p.done ? 'is-done' : ''}`;
-            card.onclick = () => focarLocal(p.id);
+            card.className = `entrega-card ${p.done ? 'done' : ''}`;
+            card.onclick = () => focar(p.id);
             card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center">
-                    <small style="color:var(--accent); font-weight:800">${p.bairro}</small>
-                    <b style="color:var(--primary)">${p.done ? 'CONCLUÍDO' : '#' + (i+1)}</b>
+                <div style="display:flex; justify-content:space-between">
+                    <small style="color:var(--accent); font-weight:800; text-transform:uppercase">${p.bairro}</small>
+                    ${!p.done ? `<b style="color:var(--primary)">#${i + 1}</b>` : ''}
                 </div>
-                <div style="font-weight:700; margin:8px 0; font-size:0.95rem; color:var(--text)">${p.addr}</div>
-                <div style="display:flex; gap:10px; margin-top:12px">
-                    <button onclick="event.stopPropagation(); abrirNavegacao(${p.lat}, ${p.lon})" style="flex:1.5; background:var(--primary); border:none; padding:12px; border-radius:10px; color:white; font-weight:bold; cursor:pointer">INICIAR GPS</button>
-                    <button onclick="event.stopPropagation(); toggleStatus(${p.id})" style="flex:1; background:none; border:1.1px solid var(--border); color:var(--text); border-radius:10px; cursor:pointer; font-weight:600">${p.done ? 'REABRIR' : 'CONCLUIR'}</button>
+                <div style="font-weight:600; margin:8px 0; font-size:0.9rem">${p.addr}</div>
+                <div style="display:flex; gap:8px">
+                    <button onclick="event.stopPropagation(); window.open('https://www.waze.com/ul?ll=${p.lat},${p.lon}&navigate=yes', '_blank')" style="flex:1; background:#33ccff; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer">Waze</button>
+                    <button onclick="event.stopPropagation(); window.open('https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}', '_blank')" style="flex:1; background:var(--primary); border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer">Maps</button>
+                    <button onclick="event.stopPropagation(); status(${p.id})" style="flex:1; background:none; border:1px solid var(--border); color:var(--text); border-radius:8px; cursor:pointer">${p.done ? '↩️' : '✅'}</button>
                 </div>
             `;
-            container.appendChild(card);
+            lista.appendChild(card);
         });
-        
-        if (markersLayer.getLayers().length > 0) {
-            map.fitBounds(markersLayer.getBounds(), {padding: [50, 50]});
+
+        if (total.length > 0) map.fitBounds(layerMarkers.getBounds(), { padding: [50, 50] });
+        if (pendentes.length === 0 && concluidos.length > 0)
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+    }
+
+    function focar(id) {
+        const p = dados.find(x => x.id === id);
+        if (!p || !marcadores[id]) return;
+
+        map.flyTo([p.lat, p.lon], 16, { animate: true, duration: 1 });
+
+        document.querySelectorAll('.entrega-card').forEach(c => c.classList.remove('active'));
+        const card = document.getElementById(`card-${id}`);
+        if (card) card.classList.add('active');
+
+        Object.values(marcadores).forEach(m => {
+            const el = m.getElement();
+            if (el) el.classList.remove('pin-active');
+        });
+
+        const elAtivo = marcadores[id].getElement();
+        if (elAtivo) elAtivo.classList.add('pin-active');
+    }
+
+    function status(id) {
+        const p = dados.find(x => x.id === id);
+        if (!p) return;
+        p.done = !p.done;
+        salvarLocal();
+        reotimizar(false);
+    }
+
+    // SALVAMENTO LOCAL
+    function salvarLocal() {
+        localStorage.setItem("pouperota_dados", JSON.stringify(dados));
+    }
+
+    function carregarLocal() {
+        const salvo = localStorage.getItem("pouperota_dados");
+        if (salvo) {
+            dados = JSON.parse(salvo);
+            document.getElementById('upload-section').style.display = 'none';
+            document.getElementById('footer-ui').style.display = 'block';
+            reotimizar(false);
         }
     }
 
-    function atualizarProgresso() {
-        const total = routeData.length;
-        const concluidas = routeData.filter(d => d.done).length;
-        document.getElementById('progresso-txt').innerText = `${concluidas} / ${total} ENTREGAS CONCLUÍDAS`;
-    }
-
-    function abrirNavegacao(lat, lon) {
-        const pref = document.getElementById('gps-pref').value;
-        const url = pref === 'google' 
-            ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`
-            : `waze://?ll=${lat},${lon}&navigate=yes`;
-        
-        window.open(url, '_blank');
-    }
-
-    function focarLocal(id) {
-        const p = routeData.find(x => x.id === id);
-        map.flyTo([p.lat, p.lon], 16);
-        
-        document.querySelectorAll('.entrega-card').forEach(c => c.classList.remove('active'));
-        document.getElementById(`card-${id}`).classList.add('active');
-
-        Object.values(markerMap).forEach(m => m.getElement()?.classList.remove('selected-marker'));
-        markerMap[id].getElement()?.classList.add('selected-marker');
-        
-        if(window.innerWidth < 768) document.getElementById('drawer').classList.remove('expanded');
-    }
-
-    function toggleStatus(id) {
-        const p = routeData.find(x => x.id === id);
-        p.done = !p.done;
-        reotimizarRota(false); 
-    }
+    carregarLocal();
 </script>
+
 </body>
 </html>
